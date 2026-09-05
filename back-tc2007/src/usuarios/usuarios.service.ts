@@ -9,8 +9,8 @@ import { hashPassword } from '../common/password.util';
 export class UsuariosService {
   constructor(private readonly repository: UsuariosRepository) {}
 
-  async create(data: CreateUsuarioDto): Promise<UsuarioResponseDto> {
-    const usuario = await this.repository.save({
+  async create(userId: string, data: CreateUsuarioDto): Promise<UsuarioResponseDto> {
+    const usuario = await this.repository.save(userId, {
       correo: data.correo,
       contrasena: hashPassword(data.contrasena),
       nombre: data.nombre,
@@ -19,8 +19,11 @@ export class UsuariosService {
     return UsuarioResponseDto.fromEntity(usuario);
   }
 
-  async findAll(): Promise<UsuarioResponseDto[]> {
-    const usuarios = await this.repository.findAll();
+  async findAll(userId: string): Promise<UsuarioResponseDto[]> {
+    const usuarios = await this.repository.findById(id);
+    if (!usuarios) {
+      throw new NotFoundException('Usuario ' + id + ' no encontrado');
+    }
     return usuarios.map((u) => UsuarioResponseDto.fromEntity(u));
   }
 

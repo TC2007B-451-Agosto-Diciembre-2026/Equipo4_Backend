@@ -1,7 +1,3 @@
-import { UseGuards } from '@nestjs/common';
-import { AuthGuard } from '../auth/auth.guard';
-import { CurrentUser } from '../auth/current-user.decorator';
-import type { JwtPayload } from '../auth/jwt';
 import {
   Body,
   Controller,
@@ -12,7 +8,11 @@ import {
   ParseIntPipe,
   Patch,
   Post,
+  UseGuards
 } from '@nestjs/common';
+import { AuthGuard } from '../auth/auth.guard';
+import { CurrentUser } from '../auth/current-user.decorator';
+import type { JwtPayload } from '../auth/jwt';
 import { UsuariosService } from './usuarios.service';
 import { UsuarioResponseDto } from './dto/usuario-response.dto';
 import { CreateUsuarioDto } from './dto/create-usuario.dto';
@@ -24,13 +24,16 @@ export class UsuariosController {
   constructor(private readonly service: UsuariosService) {}
 
   @Post()
-  create(@Body() dto: CreateUsuarioDto): Promise<UsuarioResponseDto> {
-    return this.service.create(dto);
+  create(
+    @CurrentUser() user: JwtPayload,
+    @Body() dto: CreateUsuarioDto,
+    ): Promise<UsuarioResponseDto> {
+    return this.service.create(user.sub, dto);
   }
 
   @Get()
-  findAll(): Promise<UsuarioResponseDto[]> {
-    return this.service.findAll();
+  findAll(@CurrentUser() user: JwtPayload): Promise<UsuarioResponseDto[]> {
+    return this.service.findOne(id);
   }
 
   @Get(':id')
