@@ -1,3 +1,7 @@
+import { UseGuards } from '@nestjs/common';
+import { AuthGuard } from '../auth/auth.guard';
+import { CurrentUser } from '../auth/current-user.decorator';
+import type { JwtPayload } from '../auth/jwt';
 import {
   Body,
   Controller,
@@ -15,6 +19,7 @@ import { CreateUsuarioDto } from './dto/create-usuario.dto';
 import { UpdateUsuarioDto } from './dto/update-usuario.dto';
 
 @Controller('usuarios')
+@UseGuards(AuthGuard)
 export class UsuariosController {
   constructor(private readonly service: UsuariosService) {}
 
