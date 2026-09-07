@@ -28,12 +28,12 @@ export class UsuariosController {
     @CurrentUser() user: JwtPayload,
     @Body() dto: CreateUsuarioDto,
     ): Promise<UsuarioResponseDto> {
-    return this.service.create(user.sub, dto);
+    return this.service.create(dto);
   }
 
   @Get()
-  findAll(@CurrentUser() user: JwtPayload): Promise<UsuarioResponseDto[]> {
-    return this.service.findOne(id);
+  findAll(): Promise<UsuarioResponseDto[]> {
+    return this.service.findAll();
   }
 
   @Get(':id')
