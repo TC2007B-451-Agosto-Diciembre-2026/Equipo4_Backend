@@ -1,115 +1,62 @@
-import {
-  createHmac,
-  timingSafeEqual,
-} from 'crypto';
+import { Buffer } from 'node:buffer';
+import { createHmac } from 'node:crypto';
 
-const SECRET = 'agenda-secret-2026';
+const SECRET = 'fraud2-secret-2026';
 
-const ACCESS_TTL = 60 * 15; // 15 minutes
-const REFRESH_TTL = 60 * 60 * 24 * 7; // 7 days
-
-export type JwtPayload = {
-  sub: number;
-  email: string;
-  type: 'access' | 'refresh';
-  iat: number;
-  exp: number;
-};
-
-function base64url(input: string | Buffer): string {
-  return Buffer.from(input)
-    .toString('base64')
-    .replace(/=/g, '')
-    .replace(/\+/g, '-')
-    .replace(/\//g, '_');
+export interface JwtPayload {
+    sub: number;
+    email: string;
+    type: 'access' | 'refresh';
+    iat: number;
+    exp: number;
 }
 
-function base64urlDecode(input: string): string {
-  input = input.replace(/-/g, '+').replace(/_/g, '/');
+function now(): number {
+    return Math.floor(Date.now() / 1000);
+}
 
-  while (input.length % 4) {
-    input += '=';
-  }
+function b64url(json: object): string {
+    return Buffer.from(JSON.stringify(json)).toString('base64url');
+}
 
-  return Buffer.from(input, 'base64').toString('utf8');
+function hmac(data: string): string {
+    return createHmac('sha256', SECRET).update(data).digest('base64url');
 }
 
 export function sign(
-  payload: Omit<JwtPayload, 'iat' | 'exp'>,
-  ttlSeconds: number,
+    payload: Omit<JwtPayload, 'iat' | 'exp'>,
+    ttlSeconds: number,
 ): string {
-  const now = Math.floor(Date.now() / 1000);
+    const header = b64url({ alg: 'HS256', typ: 'JWT' });
+    const body = b64url({
+        ...payload,
+        iat: now(),
+        exp: now() + ttlSeconds,
+    });
 
-  const fullPayload: JwtPayload = {
-    ...payload,
-    iat: now,
-    exp: now + ttlSeconds,
-  };
+    const signature = hmac(`${header}.${body}`);
 
-  const header = {
-    alg: 'HS256',
-    typ: 'JWT',
-  };
-
-  const encodedHeader = base64url(JSON.stringify(header));
-  const encodedPayload = base64url(JSON.stringify(fullPayload));
-
-  const data = `${encodedHeader}.${encodedPayload}`;
-
-  const signature = createHmac('sha256', SECRET)
-    .update(data)
-    .digest();
-
-  return `${data}.${base64url(signature)}`;
+    return `${header}.${body}.${signature}`;
 }
 
-export function verify(token: string): JwtPayload {
-  const parts = token.split('.');
+export function verify(token: string): JwtPayload | null {
+    const [header, body, signature] = token.split('.');
 
-  if (parts.length !== 3) {
-    throw new Error('Invalid token');
-  }
+    if (!header || !body || !signature) {
+        return null;
+    }
 
-  const [encodedHeader, encodedPayload, encodedSignature] = parts;
+    if (hmac(`${header}.${body}`) !== signature) {
+        return null;
+    }
 
-  const data = `${encodedHeader}.${encodedPayload}`;
+    const payload = JSON.parse(
+        Buffer.from(body, 'base64url').toString(),
+    ) as JwtPayload;
 
-  const expectedSignature = createHmac('sha256', SECRET)
-    .update(data)
-    .digest();
+    if (payload.exp < now()) {
+        return null;
+    }
 
-  let receivedSignature: Buffer;
-
-  try {
-    receivedSignature = Buffer.from(
-      encodedSignature.replace(/-/g, '+').replace(/_/g, '/'),
-      'base64',
-    );
-  } catch {
-    throw new Error('Invalid signature');
-  }
-
-  if (
-    receivedSignature.length !== expectedSignature.length ||
-    !timingSafeEqual(receivedSignature, expectedSignature)
-  ) {
-    throw new Error('Invalid signature');
-  }
-
-  const payload = JSON.parse(
-    base64urlDecode(encodedPayload),
-  ) as JwtPayload;
-
-  const now = Math.floor(Date.now() / 1000);
-
-  if (payload.exp < now) {
-    throw new Error('Token expired');
-  }
-
-  return payload;
+    return payload;
 }
-
-export const JWT_TTL = {
-  access: ACCESS_TTL,
-  refresh: REFRESH_TTL,
-};

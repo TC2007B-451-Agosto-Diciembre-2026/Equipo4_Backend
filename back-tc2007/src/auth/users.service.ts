@@ -22,8 +22,11 @@ export class AuthService {
       throw new ConflictException('El email ya está registrado');
     }
 
-    const user = await this.users.save(dto.email!, hash(dto.password!));
-
+    const user = await this.users.save(
+            dto.email!,
+            hash(dto.password!),
+            dto.nombre!,
+        );
     return { id: user.id!, email: user.email! };
   }
 

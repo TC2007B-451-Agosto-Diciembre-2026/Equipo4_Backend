@@ -7,4 +7,8 @@ export class RegisterDto {
   @IsString()
   @MinLength(8)
   password: string | undefined;
+
+  @IsString()
+  @MinLength(2)
+  nombre: string | undefined;
 }
