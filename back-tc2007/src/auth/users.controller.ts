@@ -10,6 +10,7 @@ export class AuthController {
 
   @Post('register')
   register(@Body() dto: RegisterDto) {
+    console.log('DTO RECIBIDO:', dto);
     return this.service.register(dto);
   }
 

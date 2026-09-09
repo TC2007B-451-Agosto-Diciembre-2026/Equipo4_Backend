@@ -1,4 +1,3 @@
--- Sesión 04: autenticación y reportes de fraude
 CREATE DATABASE IF NOT EXISTS fraud2;
 USE fraud2;
 
