@@ -3,7 +3,7 @@ import {
   Injectable,
   UnauthorizedException,
 } from '@nestjs/common';
-import { createHash } from 'node:crypto';
+import { hashPassword, verifyPassword } from '../common/password.util';
 import { LoginDto } from './dto/login.dto';
 import { RefreshDto } from './dto/refresh.dto';
 import { RegisterDto } from './dto/register.dto';
@@ -24,7 +24,7 @@ export class AuthService {
 
     const user = await this.users.save(
             dto.email!,
-            hash(dto.password!),
+            hashPassword(dto.password!),
             dto.nombre!,
         );
     return { id: user.id!, email: user.email! };
@@ -39,7 +39,7 @@ export class AuthService {
       throw new UnauthorizedException('El usuario no existe');
     }
 
-    if (user.passwordHash !== hash(dto.password!)) {
+    if (!verifyPassword(dto.password!, user.passwordHash!)) {
       throw new UnauthorizedException('Password incorrecto');
     }
 
@@ -78,8 +78,4 @@ export class AuthService {
 
     return { accessToken };
   }
-}
-
-function hash(password: string): string {
-  return createHash('sha256').update(password).digest('hex');
 }
