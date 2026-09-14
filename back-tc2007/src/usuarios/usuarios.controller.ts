@@ -10,9 +10,9 @@ import {
   Post,
   UseGuards
 } from '@nestjs/common';
-import { AuthGuard } from '../auth/auth.guard';
-import { CurrentUser } from '../auth/current-user.decorator';
-import type { JwtPayload } from '../auth/jwt';
+import { AuthGuard } from './auth/auth.guard';
+import { CurrentUser } from './auth/current-user.decorator';
+import type { JwtPayload } from './auth/jwt';
 import { UsuariosService } from './usuarios.service';
 import { UsuarioResponseDto } from './dto/usuario-response.dto';
 import { CreateUsuarioDto } from './dto/create-usuario.dto';

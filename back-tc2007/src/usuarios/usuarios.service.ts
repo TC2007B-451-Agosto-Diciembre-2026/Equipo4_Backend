@@ -3,16 +3,18 @@ import { UsuariosRepository } from './usuarios.repository';
 import { UsuarioResponseDto } from './dto/usuario-response.dto';
 import { CreateUsuarioDto } from './dto/create-usuario.dto';
 import { UpdateUsuarioDto } from './dto/update-usuario.dto';
-import { hashPassword } from '../common/password.util';
+import { generateSalt, hashPassword } from '../common/password.util';
 
 @Injectable()
 export class UsuariosService {
   constructor(private readonly repository: UsuariosRepository) {}
 
   async create(data: CreateUsuarioDto): Promise<UsuarioResponseDto> {
+    const salt = generateSalt();
     const usuario = await this.repository.save({
       correo: data.correo,
-      contrasena: hashPassword(data.contrasena),
+      contrasena: hashPassword(data.contrasena, salt),
+      salt: salt,
       nombre: data.nombre,
       rolId: data.rolId,
     });
@@ -40,9 +42,11 @@ export class UsuariosService {
     if (!existe) {
       throw new NotFoundException(`Usuario ${id} no encontrado`);
     }
-    const cambios = { ...changes };
+    const cambios:any = { ...changes };
     if (cambios.contrasena) {
-      cambios.contrasena = hashPassword(cambios.contrasena);
+      const salt = generateSalt();
+      cambios.contrasena = hashPassword(cambios.contrasena, salt);
+      cambios.salt = salt;
     }
     const actualizado = await this.repository.update(id, cambios as any);
     return UsuarioResponseDto.fromEntity(actualizado!);

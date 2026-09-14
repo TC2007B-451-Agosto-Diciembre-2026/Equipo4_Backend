@@ -31,7 +31,8 @@ CREATE TABLE tipo_fraude (
 CREATE TABLE usuario (
     id INT AUTO_INCREMENT PRIMARY KEY,
     correo VARCHAR(255) NOT NULL UNIQUE,
-    contrasena CHAR(64) NOT NULL,
+    contrasena VARCHAR(255) NOT NULL,
+    salt VARCHAR(64) NOT NULL,
     nombre VARCHAR(150) NOT NULL,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     rol_id INT NOT NULL,

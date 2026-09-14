@@ -3,7 +3,7 @@ import type { Pool, ResultSetHeader, RowDataPacket } from 'mysql2/promise';
 import { DB_POOL } from '../database/database.module';
 import { Usuario } from './entities/usuario.entity';
 
-const COLUMNS = 'id, correo, contrasena, nombre, rol_id, created_at, deleted_at';
+const COLUMNS = 'id, correo, contrasena, salt, nombre, rol_id, created_at, deleted_at';
 
 @Injectable()
 export class UsuariosRepository {
@@ -28,7 +28,7 @@ export class UsuariosRepository {
   ): Promise<Usuario> {
     const [result] = await this.pool.query<ResultSetHeader>(
       `INSERT INTO usuario (correo, contrasena, nombre, rol_id)
-       VALUES ('${usuario.correo}', '${usuario.contrasena}', '${usuario.nombre}', ${usuario.rolId})`,
+       VALUES ('${usuario.correo}', '${usuario.contrasena}', '${usuario.salt}', '${usuario.nombre}', ${usuario.rolId})`,
     );
     return (await this.findById(result.insertId))!;
   }
@@ -42,6 +42,8 @@ export class UsuariosRepository {
     if (rest.correo !== undefined) columnas.push(`correo = '${rest.correo}'`);
     if (rest.contrasena !== undefined)
       columnas.push(`contrasena = '${rest.contrasena}'`);
+    if (rest.salt !== undefined)
+      columnas.push(`salt = '${rest.salt}'`);
     if (rest.nombre !== undefined) columnas.push(`nombre = '${rest.nombre}'`);
     if (rolId !== undefined) columnas.push(`rol_id = ${rolId}`);
 
@@ -66,6 +68,7 @@ function toEntity(row: any): Usuario {
   usuario.id = row.id;
   usuario.correo = row.correo;
   usuario.contrasena = row.contrasena;
+  usuario.salt = row.salt;
   usuario.nombre = row.nombre;
   usuario.rolId = row.rol_id;
   usuario.createdAt = row.created_at;

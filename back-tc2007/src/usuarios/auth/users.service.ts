@@ -3,7 +3,7 @@ import {
   Injectable,
   UnauthorizedException,
 } from '@nestjs/common';
-import { hashPassword, verifyPassword } from '../common/password.util';
+import { generateSalt, hashPassword, verifyPassword } from '../../common/password.util';
 import { LoginDto } from './dto/login.dto';
 import { RefreshDto } from './dto/refresh.dto';
 import { RegisterDto } from './dto/register.dto';
@@ -21,10 +21,11 @@ export class AuthService {
     if (await this.users.findByEmail(dto.email!)) {
       throw new ConflictException('El email ya está registrado');
     }
-
+    const salt = generateSalt();
     const user = await this.users.save(
             dto.email!,
-            hashPassword(dto.password!),
+            hashPassword(dto.password!, salt),
+            salt,
             dto.nombre!,
         );
     return { id: user.id!, email: user.email! };
@@ -39,7 +40,7 @@ export class AuthService {
       throw new UnauthorizedException('El usuario no existe');
     }
 
-    if (!verifyPassword(dto.password!, user.passwordHash!)) {
+    if (!verifyPassword(dto.password!, user.salt!, user.passwordHash!)) {
       throw new UnauthorizedException('Password incorrecto');
     }
 
