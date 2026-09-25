@@ -29,7 +29,7 @@ CREATE TABLE tipo_fraude (
 );
 
 CREATE TABLE usuario (
-    id INT AUTO_INCREMENT PRIMARY KEY,
+    id CHAR(36) PRIMARY KEY,
     correo VARCHAR(255) NOT NULL UNIQUE,
     contrasena VARCHAR(255) NOT NULL,
     salt VARCHAR(64) NOT NULL,
@@ -47,11 +47,11 @@ CREATE TABLE reporte (
     descripcion TEXT NOT NULL,
     longitud DECIMAL(11, 8) NOT NULL,
     latitud DECIMAL(10, 8) NOT NULL,
-    img_b64 LONGTEXT NOT NULL,
+    foto VARCHAR(255) NOT NULL,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
     deleted_at TIMESTAMP NULL DEFAULT NULL,
-    usuario_id INT NOT NULL,
+    usuario_id CHAR(36) NOT NULL,
     fuente_id INT NOT NULL,
     estado_id INT NOT NULL,
     tipo_propiedad_id INT NOT NULL,

@@ -9,9 +9,17 @@ import {
   Patch,
   Post,
   UseGuards,
+  UseInterceptors,
+  UploadedFile,
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { diskStorage } from 'multer';
+import { randomUUID } from 'node:crypto';
+import { extname } from 'node:path';
 import {
   ApiBearerAuth,
+  ApiBody,
+  ApiConsumes,
   ApiNoContentResponse,
   ApiOkResponse,
   ApiOperation,
@@ -23,8 +31,10 @@ import { CurrentUser } from '../usuarios/auth/current-user.decorator';
 import type { JwtPayload } from '../usuarios/auth/jwt';
 import { ReportesService } from './reportes.service';
 import { ReporteResponseDto } from './dto/reporte-response.dto';
+import { FotoTempResponseDto } from './dto/foto-temp-response.dto';
 import { CreateReporteDto } from './dto/create-reporte.dto';
 import { UpdateReporteDto } from './dto/update-reporte.dto';
+import { FOTOS_TMP_DIR } from './uploads.paths';
 
 /**
  * CRUD de reportes de fraude (`/reportes`). Requiere Bearer token.
@@ -41,10 +51,50 @@ export class ReportesController {
   constructor(private readonly service: ReportesService) {}
 
   /**
+   * Sube una foto de evidencia a una carpeta temporal, ANTES de crear
+   * el reporte (paso 1 del flujo). Devuelve `fotoTemp`, que hay que
+   * mandar en el body de `POST /reportes` (paso 2) para que la foto
+   * se asocie al reporte y se mueva a almacenamiento definitivo.
+   *
+   * La foto queda públicamente visible de inmediato en `url`
+   * (`/uploads/tmp/<archivo>`), servida como estático desde `main.ts`.
+   */
+  @ApiOperation({
+    summary: 'Subir una foto de evidencia (paso previo a crear el reporte)',
+  })
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: { foto: { type: 'string', format: 'binary' } },
+      required: ['foto'],
+    },
+  })
+  @ApiOkResponse({ type: FotoTempResponseDto })
+  @Post('fotos')
+  @UseInterceptors(
+    FileInterceptor('foto', {
+      storage: diskStorage({
+        destination: FOTOS_TMP_DIR,
+        filename: (_req, file, callback) => {
+          callback(null, `${randomUUID()}${extname(file.originalname)}`);
+        },
+      }),
+    }),
+  )
+  uploadFoto(
+    @UploadedFile() file: Express.Multer.File,
+  ): FotoTempResponseDto {
+    return this.service.registrarFotoTemporal(file);
+  }
+
+  /**
    * Crea un reporte a nombre del usuario autenticado. `usuarioId` se
    * toma de `user.sub` (payload del JWT vía {@link CurrentUser}), no
    * del body: así un usuario no puede reportar a nombre de otro.
-   * El reporte nace en estado "Pendiente" automáticamente.
+   * El reporte nace en estado "Pendiente" automáticamente. La foto
+   * (`dto.fotoTemp`, obtenida de `POST /reportes/fotos`) se mueve a
+   * almacenamiento definitivo como parte de la creación.
    */
   @ApiOperation({ summary: 'Crear un reporte' })
   @ApiOkResponse({ type: ReporteResponseDto })
@@ -62,6 +112,19 @@ export class ReportesController {
   @Get()
   findAll(): Promise<ReporteResponseDto[]> {
     return this.service.findAll();
+  }
+
+  /**
+   * Lista los reportes del usuario autenticado (`user.sub`, del JWT).
+   * Debe declararse antes de `GET /reportes/:id` — si no, Nest
+   * interpretaría "self" como si fuera un `id` y esta ruta nunca se
+   * alcanzaría.
+   */
+  @ApiOperation({ summary: 'Listar mis reportes (usuario autenticado)' })
+  @ApiOkResponse({ type: ReporteResponseDto, isArray: true })
+  @Get('self')
+  findSelf(@CurrentUser() user: JwtPayload): Promise<ReporteResponseDto[]> {
+    return this.service.findByUsuario(user.sub);
   }
 
   /** Obtiene un reporte por id. 404 si no existe o está borrado. */

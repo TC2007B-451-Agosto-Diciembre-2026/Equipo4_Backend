@@ -26,7 +26,7 @@ export class UsuariosService {
     return usuarios.map((u) => UsuarioResponseDto.fromEntity(u));
   }
 
-  async findOne(id: number): Promise<UsuarioResponseDto> {
+  async findOne(id: string): Promise<UsuarioResponseDto> {
     const usuario = await this.repository.findById(id);
     if (!usuario) {
       throw new NotFoundException(`Usuario ${id} no encontrado`);
@@ -35,7 +35,7 @@ export class UsuariosService {
   }
 
   async update(
-    id: number,
+    id: string,
     changes: UpdateUsuarioDto,
   ): Promise<UsuarioResponseDto> {
     const existe = await this.repository.findById(id);
@@ -52,7 +52,7 @@ export class UsuariosService {
     return UsuarioResponseDto.fromEntity(actualizado!);
   }
 
-  async remove(id: number): Promise<void> {
+  async remove(id: string): Promise<void> {
     const borrado = await this.repository.softDelete(id);
     if (!borrado) {
       throw new NotFoundException(`Usuario ${id} no encontrado`);

@@ -4,7 +4,7 @@ import { createHmac } from 'node:crypto';
 const SECRET = 'fraud2-secret-2026';
 
 export interface JwtPayload {
-    sub: number;
+    sub: string;
     email: string;
     type: 'access' | 'refresh';
     iat: number;

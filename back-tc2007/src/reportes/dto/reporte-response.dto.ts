@@ -20,11 +20,17 @@ export class ReporteResponseDto {
   @ApiProperty({ example: 19.4326 })
   latitud!: number;
 
-  @ApiProperty({ description: 'Imagen en base64' })
-  imgB64!: string;
+@ApiProperty({
+  description: 'URL pública de la foto de evidencia',
+  example: '/uploads/reportes/a3f1c2a0-4e9d-4a7a-9c2e-1f8a6d2b7e10.jpg',
+})
+fotoUrl!: string;
 
-  @ApiProperty({ example: 1, description: 'FK hacia usuario.id (quien reportó)' })
-  usuarioId!: number;
+@ApiProperty({
+  example: 'b3f1c2a0-4e9d-4a7a-9c2e-1f8a6d2b7e10',
+  description: 'FK hacia usuario.id (quien reportó)',
+})
+usuarioId!: string;
 
   @ApiProperty({ example: 1, description: 'FK hacia fuente.id' })
   fuenteId!: number;
@@ -55,7 +61,7 @@ export class ReporteResponseDto {
     dto.descripcion = reporte.descripcion;
     dto.longitud = reporte.longitud;
     dto.latitud = reporte.latitud;
-    dto.imgB64 = reporte.imgB64;
+    dto.fotoUrl = reporte.foto;
     dto.usuarioId = reporte.usuarioId;
     dto.fuenteId = reporte.fuenteId;
     dto.estadoId = reporte.estadoId;

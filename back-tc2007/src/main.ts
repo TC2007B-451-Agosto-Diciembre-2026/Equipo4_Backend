@@ -1,16 +1,33 @@
 import { ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
+import { NestExpressApplication } from '@nestjs/platform-express';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import { mkdirSync } from 'node:fs';
 import { AppModule } from './app.module';
+import {
+  FOTOS_REPORTES_DIR,
+  FOTOS_TMP_DIR,
+  UPLOADS_ROOT,
+} from './reportes/uploads.paths';
 
 /**
  * Punto de entrada de la API. Levanta la aplicación NestJS, activa la
- * validación global de DTOs (`class-validator`) y publica la
- * documentación OpenAPI/Swagger en `/api`.
+ * validación global de DTOs (`class-validator`), sirve `uploads/`
+ * como estáticos (fotos de reportes, ver `reportes/uploads.paths.ts`)
+ * y publica la documentación OpenAPI/Swagger en `/api`.
  */
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create<NestExpressApplication>(AppModule);
   app.useGlobalPipes(new ValidationPipe());
+
+  // `diskStorage` (multer) no crea carpetas de destino por su cuenta:
+  // hay que asegurarlas antes de que llegue el primer upload.
+  mkdirSync(FOTOS_TMP_DIR, { recursive: true });
+  mkdirSync(FOTOS_REPORTES_DIR, { recursive: true });
+
+  // Publica todo lo que haya bajo uploads/ (temporales y definitivas)
+  // en /uploads/*, para que las fotos sean visibles por URL pública.
+  app.useStaticAssets(UPLOADS_ROOT, { prefix: '/uploads/' });
 
   const config = new DocumentBuilder()
     .setTitle('0Fraud Stay API')

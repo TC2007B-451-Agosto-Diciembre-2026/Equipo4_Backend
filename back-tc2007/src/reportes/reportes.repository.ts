@@ -4,7 +4,7 @@ import { DB_POOL } from '../database/database.module';
 import { Reporte } from './entities/reporte.entity';
 
 const COLUMNS =
-  'id, nombre, descripcion, longitud, latitud, img_b64, usuario_id, ' +
+  'id, nombre, descripcion, longitud, latitud, foto, usuario_id, ' +
   'fuente_id, estado_id, tipo_propiedad_id, tipo_fraude_id, ' +
   'created_at, updated_at, deleted_at';
 
@@ -15,7 +15,7 @@ const COLUMNS =
  */
 type NuevoReporte = Omit<
   Reporte,
-  'id' | 'createdAt' | 'updatedAt' | 'deletedAt' | 'estadoId'
+  "id" | "createdAt" | "updatedAt" | "deletedAt" | "estadoId"
 >;
 
 /**
@@ -26,7 +26,7 @@ const ESTADO_INICIAL_INEXISTENTE_ERRNO = 1048;
 
 /** Cambios parciales aceptados por `update`. `usuarioId` no es editable (el dueño de un reporte no cambia). */
 type CambiosReporte = Partial<
-  Omit<Reporte, 'id' | 'usuarioId' | 'createdAt' | 'updatedAt' | 'deletedAt'>
+  Omit<Reporte, "id" | "usuarioId" | "createdAt" | "updatedAt" | "deletedAt">
 >;
 
 /** errno de MySQL para violación de FK (`reporte` → `fuente`/`estado`/`tipo_propiedad`/`tipo_fraude`/`usuario`). */
@@ -56,8 +56,8 @@ export class ReportesRepository {
     return rows.map(toEntity);
   }
 
-  /** Lista los reportes activos de un usuario específico, más recientes primero. */
-  async findByUsuario(usuarioId: number): Promise<Reporte[]> {
+  /** Lista los reportes activos de un usuario específico (UUID), más recientes primero. */
+  async findByUsuario(usuarioId: string): Promise<Reporte[]> {
     const [rows] = await this.pool.query<RowDataPacket[]>(
       `SELECT ${COLUMNS} FROM reporte
        WHERE usuario_id = ? AND deleted_at IS NULL
@@ -90,7 +90,7 @@ export class ReportesRepository {
     try {
       const [result] = await this.pool.query<ResultSetHeader>(
         `INSERT INTO reporte
-           (nombre, descripcion, longitud, latitud, img_b64, usuario_id,
+           (nombre, descripcion, longitud, latitud, foto, usuario_id,
             fuente_id, estado_id, tipo_propiedad_id, tipo_fraude_id)
          VALUES (?, ?, ?, ?, ?, ?, ?,
                  (SELECT id FROM estado WHERE nombre = 'Pendiente' LIMIT 1),
@@ -100,7 +100,7 @@ export class ReportesRepository {
           reporte.descripcion,
           reporte.longitud,
           reporte.latitud,
-          reporte.imgB64,
+          reporte.foto,
           reporte.usuarioId,
           reporte.fuenteId,
           reporte.tipoPropiedadId,
@@ -138,7 +138,7 @@ export class ReportesRepository {
       descripcion: 'descripcion',
       longitud: 'longitud',
       latitud: 'latitud',
-      imgB64: 'img_b64',
+      foto: 'foto',
       fuenteId: 'fuente_id',
       estadoId: 'estado_id',
       tipoPropiedadId: 'tipo_propiedad_id',
@@ -196,7 +196,7 @@ function toEntity(row: any): Reporte {
   reporte.descripcion = row.descripcion;
   reporte.longitud = Number(row.longitud);
   reporte.latitud = Number(row.latitud);
-  reporte.imgB64 = row.img_b64;
+  reporte.foto = row.foto;
   reporte.usuarioId = row.usuario_id;
   reporte.fuenteId = row.fuente_id;
   reporte.estadoId = row.estado_id;

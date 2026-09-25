@@ -44,11 +44,18 @@ export class CreateReporteDto {
   @IsLatitude()
   latitud!: number;
 
-  /** Imagen de evidencia codificada en base64. */
-  @ApiProperty({ description: 'Imagen en base64', example: 'iVBORw0KGgoAAAANSUhEUgAA...' })
-  @IsString()
-  @IsNotEmpty()
-  imgB64!: string;
+/**
+ * Referencia a la foto ya subida a temporales, devuelta por
+ * `POST /reportes/fotos` como `fotoTemp`. Debe existir en la
+ * carpeta temporal en el momento de crear el reporte.
+ */
+@ApiProperty({
+  description: 'fotoTemp devuelto por POST /reportes/fotos',
+  example: 'a3f1c2a0-4e9d-4a7a-9c2e-1f8a6d2b7e10.jpg',
+})
+@IsString()
+@IsNotEmpty()
+fotoTemp!: string;
 
   /** FK hacia `fuente.id`. Debe existir en el catálogo de fuentes. */
   @ApiProperty({ example: 1 })

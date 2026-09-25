@@ -20,15 +20,20 @@ export class Reporte {
   /** Latitud geográfica (DECIMAL(10,8) en la BD). */
   latitud!: number;
 
-  /** Imagen de evidencia codificada en base64. */
-  imgB64!: string;
+/**
+ * Ruta pública de la foto de evidencia (ej. `/uploads/reportes/<uuid>.jpg`),
+ * servida como estático desde `main.ts`. Ya no se guarda como base64:
+ * la foto se sube primero a una carpeta temporal (`POST /reportes/fotos`)
+ * y se mueve aquí al crear el reporte (ver {@link ReportesService.create}).
+ */
+  foto!: string;
 
-  /**
-   * FK hacia `usuario.id`. Se asigna a partir del token del usuario
-   * autenticado (`CurrentUser().sub`), nunca desde el body: así un
-   * usuario no puede crear reportes a nombre de otro.
-   */
-  usuarioId!: number;
+/**
+ * FK hacia `usuario.id` (UUID). Se asigna a partir del token del
+ * usuario autenticado (`CurrentUser().sub`), nunca desde el body:
+ * así un usuario no puede crear reportes a nombre de otro.
+ */
+  usuarioId!: string;
 
   /** FK hacia `fuente.id`. */
   fuenteId!: number;

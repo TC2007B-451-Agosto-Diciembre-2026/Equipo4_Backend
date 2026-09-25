@@ -1,14 +1,24 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { ConflictException, Inject, Injectable } from '@nestjs/common';
+import { randomUUID } from 'node:crypto';
 import type { Pool, ResultSetHeader, RowDataPacket } from 'mysql2/promise';
 import { DB_POOL } from '../database/database.module';
 import { Usuario } from './entities/usuario.entity';
 
-const COLUMNS = 'id, correo, contrasena, salt, nombre, rol_id, created_at, deleted_at';
+const COLUMNS =
+  'id, correo, contrasena, salt, nombre, rol_id, created_at, deleted_at';
 
+/**
+ * Acceso a datos de `usuario` sobre `mysql2` (sin ORM). Todas las
+ * queries usan placeholders `?` (parametrizadas) para evitar
+ * inyección SQL; ninguna interpola valores directo en el string.
+ *
+ * Aplica borrado lógico: toda lectura filtra `deleted_at IS NULL`.
+ */
 @Injectable()
 export class UsuariosRepository {
   constructor(@Inject(DB_POOL) private readonly pool: Pool) {}
 
+  /** Lista los usuarios activos, ordenados por fecha de creación. */
   async findAll(): Promise<Usuario[]> {
     const [rows] = await this.pool.query<RowDataPacket[]>(
       `SELECT ${COLUMNS} FROM usuario WHERE deleted_at IS NULL ORDER BY created_at`,
@@ -16,53 +26,114 @@ export class UsuariosRepository {
     return rows.map(toEntity);
   }
 
-  async findById(id: number): Promise<Usuario | undefined> {
+  /** Busca un usuario activo por id (UUID). `undefined` si no existe o está borrado. */
+  async findById(id: string): Promise<Usuario | undefined> {
     const [rows] = await this.pool.query<RowDataPacket[]>(
-      `SELECT ${COLUMNS} FROM usuario WHERE id = ${id} AND deleted_at IS NULL`,
+      `SELECT ${COLUMNS} FROM usuario WHERE id = ? AND deleted_at IS NULL`,
+      [id],
     );
     return rows[0] && toEntity(rows[0]);
   }
 
+  /**
+   * Inserta un usuario nuevo y devuelve la fila insertada. El `id`
+   * (UUID v4) se genera aquí en la aplicación con `crypto.randomUUID()`
+   * y se manda explícito en el INSERT — la tabla ya no tiene
+   * AUTO_INCREMENT, así que no hay `insertId` del que depender.
+   * @throws ConflictException si `rolId` no referencia un rol existente
+   * (violación de la FK `fk_usuario_rol`, errno 1452).
+   */
   async save(
     usuario: Omit<Usuario, 'id' | 'createdAt' | 'deletedAt'>,
   ): Promise<Usuario> {
-    const [result] = await this.pool.query<ResultSetHeader>(
-      `INSERT INTO usuario (correo, contrasena, nombre, rol_id)
-       VALUES ('${usuario.correo}', '${usuario.contrasena}', '${usuario.salt}', '${usuario.nombre}', ${usuario.rolId})`,
-    );
-    return (await this.findById(result.insertId))!;
+    const id = randomUUID();
+    try {
+      await this.pool.query<ResultSetHeader>(
+        `INSERT INTO usuario (id, correo, contrasena, salt, nombre, rol_id)
+         VALUES (?, ?, ?, ?, ?, ?)`,
+        [
+          id,
+          usuario.correo,
+          usuario.contrasena,
+          usuario.salt,
+          usuario.nombre,
+          usuario.rolId,
+        ],
+      );
+      return (await this.findById(id))!;
+    } catch (err: any) {
+      if (err?.errno === 1452) {
+        throw new ConflictException('El rol especificado no existe');
+      }
+      throw err;
+    }
   }
 
+  /**
+   * Actualiza solo las columnas presentes en `changes` (patrón
+   * "set dinámico" parametrizado). Si `changes` viene vacío, no
+   * ejecuta ningún UPDATE y simplemente relee la fila.
+   * @throws ConflictException si `rolId` no referencia un rol existente.
+   */
   async update(
-    id: number,
+    id: string,
     changes: Partial<Usuario>,
   ): Promise<Usuario | undefined> {
-    const { rolId, ...rest } = changes as any;
     const columnas: string[] = [];
-    if (rest.correo !== undefined) columnas.push(`correo = '${rest.correo}'`);
-    if (rest.contrasena !== undefined)
-      columnas.push(`contrasena = '${rest.contrasena}'`);
-    if (rest.salt !== undefined)
-      columnas.push(`salt = '${rest.salt}'`);
-    if (rest.nombre !== undefined) columnas.push(`nombre = '${rest.nombre}'`);
-    if (rolId !== undefined) columnas.push(`rol_id = ${rolId}`);
+    const valores: unknown[] = [];
+
+    if (changes.correo !== undefined) {
+      columnas.push('correo = ?');
+      valores.push(changes.correo);
+    }
+    if (changes.contrasena !== undefined) {
+      columnas.push('contrasena = ?');
+      valores.push(changes.contrasena);
+    }
+    if (changes.salt !== undefined) {
+      columnas.push('salt = ?');
+      valores.push(changes.salt);
+    }
+    if (changes.nombre !== undefined) {
+      columnas.push('nombre = ?');
+      valores.push(changes.nombre);
+    }
+    if (changes.rolId !== undefined) {
+      columnas.push('rol_id = ?');
+      valores.push(changes.rolId);
+    }
 
     if (columnas.length === 0) return this.findById(id);
 
-    await this.pool.query(
-      `UPDATE usuario SET ${columnas.join(', ')} WHERE id = ${id} AND deleted_at IS NULL`,
-    );
+    try {
+      await this.pool.query(
+        `UPDATE usuario SET ${columnas.join(', ')} WHERE id = ? AND deleted_at IS NULL`,
+        [...valores, id],
+      );
+    } catch (err: any) {
+      if (err?.errno === 1452) {
+        throw new ConflictException('El rol especificado no existe');
+      }
+      throw err;
+    }
     return this.findById(id);
   }
 
-  async softDelete(id: number): Promise<boolean> {
+  /**
+   * Marca `deleted_at = NOW()`. Devuelve `false` si el usuario no
+   * existía o ya estaba borrado (no lanza excepción; el service
+   * decide si eso es un 404).
+   */
+  async softDelete(id: string): Promise<boolean> {
     const [result] = await this.pool.query<ResultSetHeader>(
-      `UPDATE usuario SET deleted_at = NOW() WHERE id = ${id} AND deleted_at IS NULL`,
+      `UPDATE usuario SET deleted_at = NOW() WHERE id = ? AND deleted_at IS NULL`,
+      [id],
     );
     return result.affectedRows > 0;
   }
 }
 
+/** Mapea una fila cruda de `mysql2` (snake_case) a {@link Usuario}. */
 function toEntity(row: any): Usuario {
   const usuario = new Usuario();
   usuario.id = row.id;

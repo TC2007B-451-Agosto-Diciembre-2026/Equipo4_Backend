@@ -8,8 +8,8 @@ import { Usuario } from '../entities/usuario.entity';
  * la capa de servicio/repositorio hacia el cliente HTTP.
  */
 export class UsuarioResponseDto {
-  @ApiProperty({ example: 1 })
-  id!: number;
+  @ApiProperty({ example: 'uuid' })
+  id!: string;
 
   @ApiProperty({ example: 'ara@tec.mx' })
   correo!: string;

@@ -17,7 +17,7 @@ const REFRESH_TTL = 7 * 24 * 60 * 60; // 7 días
 export class AuthService {
   constructor(private readonly users: UsersRepository) {}
 
-  async register(dto: RegisterDto): Promise<{ id: number; email: string }> {
+  async register(dto: RegisterDto): Promise<{ id: string; email: string }> {
     if (await this.users.findByEmail(dto.email!)) {
       throw new ConflictException('El email ya está registrado');
     }

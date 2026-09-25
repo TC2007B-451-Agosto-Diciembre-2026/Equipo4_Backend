@@ -7,8 +7,13 @@
  * {@link UsuarioResponseDto.fromEntity}, que omite estos campos.
  */
 export class Usuario {
-  /** Identificador autoincremental (PK). */
-  id!: number;
+  /**
+   * Identificador único (PK), un UUID v4 generado en la aplicación
+   * con `crypto.randomUUID()` al crear el usuario (no es
+   * autoincremental). Se eligió UUID para que el id no sea
+   * adivinable/enumerable por un cliente malicioso.
+   */
+  id!: string;
 
   /** Correo electrónico, único en la tabla. Se usa como login. */
   correo!: string;

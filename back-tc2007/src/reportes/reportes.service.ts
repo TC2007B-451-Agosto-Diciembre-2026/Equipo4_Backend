@@ -1,8 +1,17 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
+import { randomUUID } from 'node:crypto';
+import { existsSync, renameSync } from 'node:fs';
+import { basename, extname, join } from 'node:path';
 import { ReportesRepository } from './reportes.repository';
 import { ReporteResponseDto } from './dto/reporte-response.dto';
+import { FotoTempResponseDto } from './dto/foto-temp-response.dto';
 import { CreateReporteDto } from './dto/create-reporte.dto';
 import { UpdateReporteDto } from './dto/update-reporte.dto';
+import { FOTOS_REPORTES_DIR, FOTOS_TMP_DIR } from './uploads.paths';
 
 /**
  * Lógica de negocio del CRUD de reportes. Traduce ausencia de fila a
@@ -14,20 +23,40 @@ export class ReportesService {
   constructor(private readonly repository: ReportesRepository) {}
 
   /**
+   * Registra una foto recién subida por `POST /reportes/fotos`
+   * (multipart, ya guardada en `FOTOS_TMP_DIR` por `FileInterceptor`)
+   * y devuelve la referencia (`fotoTemp`) que hay que mandar luego en
+   * `POST /reportes`, más una URL pública para previsualizarla.
+   * @throws BadRequestException si no se mandó ningún archivo.
+   */
+  registrarFotoTemporal(file: Express.Multer.File): FotoTempResponseDto {
+    if (!file) {
+      throw new BadRequestException('No se recibió ningún archivo (campo "foto")');
+    }
+    const dto = new FotoTempResponseDto();
+    dto.fotoTemp = file.filename;
+    dto.url = `/uploads/tmp/${file.filename}`;
+    return dto;
+  }
+
+  /**
    * Crea un reporte nuevo a nombre de `usuarioId` (viene del token,
    * ver `ReportesController.create`). El estado inicial ("Pendiente")
-   * lo asigna el repository, no se recibe aquí.
+   * lo asigna el repository, no se recibe aquí. La foto referenciada
+   * por `data.fotoTemp` se mueve de temporales a almacenamiento
+   * definitivo como parte de la creación (ver {@link moverFotoAPermanente}).
    */
   async create(
-    usuarioId: number,
+    usuarioId: string,
     data: CreateReporteDto,
   ): Promise<ReporteResponseDto> {
+    const foto = this.moverFotoAPermanente(data.fotoTemp);
     const reporte = await this.repository.save({
       nombre: data.nombre,
       descripcion: data.descripcion,
       longitud: data.longitud,
       latitud: data.latitud,
-      imgB64: data.imgB64,
+      foto,
       usuarioId,
       fuenteId: data.fuenteId,
       tipoPropiedadId: data.tipoPropiedadId,
@@ -42,15 +71,8 @@ export class ReportesService {
     return reportes.map((r) => ReporteResponseDto.fromEntity(r));
   }
 
-  /**
-   * Lista los reportes activos de un usuario específico.
-   *
-   * Nota de documentación: este método no está expuesto todavía por
-   * `ReportesController` (no hay una ruta como
-   * `GET /reportes/mios` o `GET /usuarios/:id/reportes` que lo
-   * llame); queda disponible para cuando se agregue esa ruta.
-   */
-  async findByUsuario(usuarioId: number): Promise<ReporteResponseDto[]> {
+  /** Lista los reportes activos de un usuario específico. Usado por `GET /reportes/self`. */
+  async findByUsuario(usuarioId: string): Promise<ReporteResponseDto[]> {
     const reportes = await this.repository.findByUsuario(usuarioId);
     return reportes.map((r) => ReporteResponseDto.fromEntity(r));
   }
@@ -81,7 +103,15 @@ export class ReportesService {
     if (!existe) {
       throw new NotFoundException(`Reporte ${id} no encontrado`);
     }
-    const actualizado = await this.repository.update(id, changes);
+    // `fotoTemp` no es una columna real (ver CreateReporteDto): si viene,
+    // se traduce a `foto` moviendo el archivo de temporales a definitivo,
+    // igual que en `create`.
+    const { fotoTemp, ...resto } = changes;
+    const cambios: Partial<UpdateReporteDto> & { foto?: string } = resto;
+    if (fotoTemp) {
+      cambios.foto = this.moverFotoAPermanente(fotoTemp);
+    }
+    const actualizado = await this.repository.update(id, cambios as any);
     return ReporteResponseDto.fromEntity(actualizado!);
   }
 
@@ -94,5 +124,35 @@ export class ReportesService {
     if (!borrado) {
       throw new NotFoundException(`Reporte ${id} no encontrado`);
     }
+  }
+
+  /**
+   * Mueve una foto de `FOTOS_TMP_DIR` a `FOTOS_REPORTES_DIR`,
+   * renombrándola con un UUID nuevo, y devuelve la ruta pública
+   * resultante (ej. `/uploads/reportes/<uuid>.jpg`).
+   *
+   * `fotoTemp` viene del body (cliente), así que se sanea con
+   * `basename` antes de construir la ruta de origen: evita que un
+   * valor como `../../etc/passwd` escape de `FOTOS_TMP_DIR`
+   * (path traversal).
+   *
+   * @throws BadRequestException si el archivo temporal no existe
+   * (nunca se subió, ya se movió antes, o expiró).
+   */
+  private moverFotoAPermanente(fotoTemp: string): string {
+    const nombreTemp = basename(fotoTemp);
+    const origen = join(FOTOS_TMP_DIR, nombreTemp);
+
+    if (!existsSync(origen)) {
+      throw new BadRequestException(
+        'fotoTemp no encontrado; sube la foto de nuevo con POST /reportes/fotos',
+      );
+    }
+
+    const nombreFinal = `${randomUUID()}${extname(nombreTemp)}`;
+    const destino = join(FOTOS_REPORTES_DIR, nombreFinal);
+    renameSync(origen, destino);
+
+    return `/uploads/reportes/${nombreFinal}`;
   }
 }
