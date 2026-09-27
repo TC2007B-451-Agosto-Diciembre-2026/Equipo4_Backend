@@ -1,4 +1,6 @@
-import { Body, Controller, HttpCode, Post } from '@nestjs/common';
+import { Body, Controller, HttpCode, Post, UseGuards } from '@nestjs/common';
+import { AuthGuard } from './auth.guard';
+import { AdminGuard } from './admin.guard';
 import { AuthService } from './users.service';
 import { LoginDto } from './dto/login.dto';
 import { RefreshDto } from './dto/refresh.dto';
@@ -13,6 +15,12 @@ export class AuthController {
     console.log('DTO RECIBIDO:', dto);
     return this.service.register(dto);
   }
+
+  @Post('register-admin')
+    @UseGuards(AuthGuard, AdminGuard)
+    registerAdmin(@Body() dto: RegisterDto) {
+      return this.service.registerAdmin(dto);
+    }
 
   @Post('login')
   @HttpCode(200)

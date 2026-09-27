@@ -31,6 +31,21 @@ export class AuthService {
     return { id: user.id!, email: user.email! };
   }
 
+  async registerAdmin(dto: RegisterDto,): Promise<{ id: string; email: string }> {
+    if (await this.users.findByEmail(dto.email!)) {
+      throw new ConflictException('El email ya está registrado');
+    }
+    const salt = generateSalt();
+    const user = await this.users.saveAdmin(
+      dto.email!,
+      hashPassword(dto.password!, salt),
+      salt,
+      dto.nombre!,
+    );
+
+    return { id: user.id!, email: user.email! };
+  }
+
   async login(
     dto: LoginDto,
   ): Promise<{ accessToken: string; refreshToken: string }> {
@@ -44,7 +59,7 @@ export class AuthService {
       throw new UnauthorizedException('Password incorrecto');
     }
 
-    const claims = { sub: user.id!, email: user.email! };
+    const claims = { sub: user.id!, email: user.email!, rolId: user.rolId!};
 
     const accessToken = sign(
       { ...claims, type: 'access' },
@@ -72,6 +87,7 @@ export class AuthService {
       {
         sub: payload.sub,
         email: payload.email,
+        rolId: payload.rolId,
         type: 'access',
       },
       ACCESS_TTL,

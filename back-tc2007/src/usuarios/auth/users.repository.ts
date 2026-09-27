@@ -51,6 +51,23 @@ export class UsersRepository {
     return (await this.findById(id))!;
   }
 
+  async saveAdmin(
+    correo: string,
+    contrasena: string,
+    salt: string,
+    nombre: string,
+  ): Promise<User> {
+    const id = randomUUID();
+    await this.pool.query(
+      `INSERT INTO usuario
+        (id, correo, contrasena, salt, nombre, rol_id)
+      VALUES (?, ?, ?, ?, ?, 2)`,
+      [id, correo, contrasena, salt, nombre],
+    );
+
+    return (await this.findById(id))!;
+  }
+
   /** Busca un usuario activo por id (UUID). Usado al refrescar el token. */
   async findById(id: string): Promise<User | undefined> {
     const [rows] = await this.pool.query<RowDataPacket[]>(
@@ -70,5 +87,6 @@ function toEntity(row: any): User {
   user.passwordHash = row.contrasena;
   user.salt = row.salt;
   user.createdAt = row.created_at;
+  user.rolId = row.rol_id;
   return user;
 }

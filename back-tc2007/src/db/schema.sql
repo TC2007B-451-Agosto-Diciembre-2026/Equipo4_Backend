@@ -70,6 +70,7 @@ CREATE TABLE reporte (
 
 INSERT INTO rol (nombre, alias) VALUES
 ('Usuario', 'user');
+('Administrador', 'admin');
 
 INSERT INTO fuente (tipo_fuente, valor_fuente) VALUES
 ('Plataforma', 'Airbnb'),
