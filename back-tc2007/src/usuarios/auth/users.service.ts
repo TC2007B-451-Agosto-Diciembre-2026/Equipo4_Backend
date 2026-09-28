@@ -55,10 +55,6 @@ export class AuthService {
       throw new UnauthorizedException('El usuario no existe');
     }
 
-    if (!verifyPassword(dto.password!, user.salt!, user.passwordHash!)) {
-      throw new UnauthorizedException('Password incorrecto');
-    }
-
     const claims = { sub: user.id!, email: user.email!, rolId: user.rolId!};
 
     const accessToken = sign(
