@@ -4,6 +4,7 @@ import { UsuarioResponseDto } from './dto/usuario-response.dto';
 import { CreateUsuarioDto } from './dto/create-usuario.dto';
 import { UpdateUsuarioDto } from './dto/update-usuario.dto';
 import { generateSalt, hashPassword } from '../common/password.util';
+import { UpdateMyProfileDto } from './dto/update-profile.dto';
 
 @Injectable()
 export class UsuariosService {
@@ -50,6 +51,14 @@ export class UsuariosService {
     }
     const actualizado = await this.repository.update(id, cambios as any);
     return UsuarioResponseDto.fromEntity(actualizado!);
+  }
+
+  async findMe(id: string): Promise<UsuarioResponseDto> {
+    return this.findOne(id);
+  }
+
+  async updateMe( id: string, changes: UpdateMyProfileDto): Promise<UsuarioResponseDto> {
+    return this.update(id, changes);
   }
 
   async remove(id: string): Promise<void> {

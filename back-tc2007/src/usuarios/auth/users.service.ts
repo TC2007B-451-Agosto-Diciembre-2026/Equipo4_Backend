@@ -9,6 +9,8 @@ import { RefreshDto } from './dto/refresh.dto';
 import { RegisterDto } from './dto/register.dto';
 import { sign, verify } from './jwt';
 import { UsersRepository } from './users.repository';
+import { randomInt } from 'node:crypto';
+import * as nodemailer from 'nodemailer';
 
 const ACCESS_TTL = 15 * 60; // 15 minutos
 const REFRESH_TTL = 7 * 24 * 60 * 60; // 7 días
@@ -16,6 +18,14 @@ const REFRESH_TTL = 7 * 24 * 60 * 60; // 7 días
 @Injectable()
 export class AuthService {
   constructor(private readonly users: UsersRepository) {}
+
+  private transporter = nodemailer.createTransport({
+    service: 'gmail',
+    auth: {
+      user: process.env.GMAIL_USER,
+      pass: process.env.GMAIL_APP_PASSWORD,
+    },
+  });
 
   async register(dto: RegisterDto): Promise<{ id: string; email: string }> {
     if (await this.users.findByEmail(dto.email!)) {
@@ -94,5 +104,31 @@ export class AuthService {
     );
 
     return { accessToken };
+  }
+
+  async forgotPassword(email: string): Promise<{ message: string }> {
+    const user = await this.users.findByEmail(email);
+    if (!user) {
+      throw new UnauthorizedException('El usuario no existe');
+    }
+    const caracteres = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
+    let codigo = '';
+    for (let i = 0; i < 6; i++) {
+      codigo += caracteres[randomInt(caracteres.length)];
+    }
+    const expiraEn = new Date(Date.now() + 15 * 60 * 1000);
+    await this.users.createRecoveryCode(user.id!, codigo, expiraEn);
+    await this.transporter.sendMail({
+      from: process.env.GMAIL_USER,
+      to: email,
+      subject: 'Código de recuperación - Ofraud Stay',
+      text: `Tu código de recuperación es: ${codigo}
+    Este código es válido por 15 minutos y solo puede usarse una vez.`,
+    });
+    console.log('Código de recuperación:', codigo);
+    console.log('Expira en:', expiraEn);
+    return {
+      message: 'Se generó el código de recuperación',
+    };
   }
 }

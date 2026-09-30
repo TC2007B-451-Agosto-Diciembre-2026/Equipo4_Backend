@@ -68,6 +68,16 @@ CREATE TABLE reporte (
         FOREIGN KEY (tipo_fraude_id) REFERENCES tipo_fraude(id)
 );
 
+CREATE TABLE recovery_code (
+    id CHAR(36) PRIMARY KEY,
+    usuario_id CHAR(36) NOT NULL,
+    codigo VARCHAR(6) NOT NULL,
+    expira_en DATETIME NOT NULL,
+    usado BOOLEAN NOT NULL DEFAULT FALSE,
+
+    FOREIGN KEY (usuario_id) REFERENCES usuario(id)
+);
+
 INSERT INTO rol (nombre, alias) VALUES
 ('Usuario', 'user');
 ('Administrador', 'admin');

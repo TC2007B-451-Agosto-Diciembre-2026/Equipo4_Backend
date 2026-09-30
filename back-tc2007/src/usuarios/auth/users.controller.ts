@@ -33,4 +33,10 @@ export class AuthController {
   refresh(@Body() dto: RefreshDto) {
     return this.service.refresh(dto);
   }
+
+  @Post('forgot-password')
+  @HttpCode(200)
+  forgotPassword(@Body() dto: { correo: string }) {
+    return this.service.forgotPassword(dto.correo);
+  }
 }
