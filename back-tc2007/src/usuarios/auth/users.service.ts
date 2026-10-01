@@ -11,6 +11,7 @@ import { sign, verify } from './jwt';
 import { UsersRepository } from './users.repository';
 import { randomInt } from 'node:crypto';
 import * as nodemailer from 'nodemailer';
+import { ResetPasswordDto } from './dto/reset-password.dto';
 
 const ACCESS_TTL = 15 * 60; // 15 minutos
 const REFRESH_TTL = 7 * 24 * 60 * 60; // 7 días
@@ -129,6 +130,34 @@ export class AuthService {
     console.log('Expira en:', expiraEn);
     return {
       message: 'Se generó el código de recuperación',
+    };
+  }
+
+  async resetPassword(dto: ResetPasswordDto): Promise<{ message: string }> {
+    const user = await this.users.findByEmail(dto.correo);
+    if (!user) {
+      throw new UnauthorizedException('Usuario no encontrado');
+    }
+    const recovery = await this.users.findRecoveryCode(
+      user.id!,
+      dto.codigo,
+    );
+    if (!recovery) {
+      throw new UnauthorizedException('Código inválido');
+    }
+    if (new Date() > recovery.expira_en) {
+      throw new UnauthorizedException('Código expirado');
+    }
+    const salt = generateSalt();
+    const passwordHash = hashPassword(dto.nuevaContrasena, salt);
+    await this.users.updatePassword(
+      user.id!,
+      passwordHash,
+      salt,
+    );
+    await this.users.useRecoveryCode(recovery.id);
+    return {
+      message: 'Contraseña actualizada correctamente',
     };
   }
 }

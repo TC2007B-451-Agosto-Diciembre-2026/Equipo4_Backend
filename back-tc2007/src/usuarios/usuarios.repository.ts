@@ -75,24 +75,13 @@ export class UsuariosRepository {
    * ejecuta ningún UPDATE y simplemente relee la fila.
    * @throws ConflictException si `rolId` no referencia un rol existente.
    */
-  async update(
-    id: string,
-    changes: Partial<Usuario>,
-  ): Promise<Usuario | undefined> {
+  async update(id: string, changes: Partial<Usuario>): Promise<Usuario | undefined> {
     const columnas: string[] = [];
     const valores: unknown[] = [];
 
     if (changes.correo !== undefined) {
       columnas.push('correo = ?');
       valores.push(changes.correo);
-    }
-    if (changes.contrasena !== undefined) {
-      columnas.push('contrasena = ?');
-      valores.push(changes.contrasena);
-    }
-    if (changes.salt !== undefined) {
-      columnas.push('salt = ?');
-      valores.push(changes.salt);
     }
     if (changes.nombre !== undefined) {
       columnas.push('nombre = ?');
