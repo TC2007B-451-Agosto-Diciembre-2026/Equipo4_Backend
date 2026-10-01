@@ -13,7 +13,7 @@ export const DB_POOL = 'DB_POOL';
  * entorno (`process.env.DATABASE_URL`) para no exponer credenciales
  * en el repositorio ni forzar el mismo servidor en todos los ambientes.
  */
-const DATABASE_URL = 'mysql://root:12345@localhost:3306/fraud2';
+const DATABASE_URL = 'mysql://root:root@localhost:3306/fraud2';
 
 /**
  * Módulo global de acceso a base de datos. Expone un único pool de

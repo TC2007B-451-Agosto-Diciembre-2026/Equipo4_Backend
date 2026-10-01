@@ -21,9 +21,9 @@ export class CreateUsuarioDto {
   correo!: string;
 
   /** Contraseña en texto plano; el servicio la hashea antes de guardar. */
-  @ApiProperty({ example: 'contrasena123', minLength: 8 })
+  @ApiProperty({ example: 'contrasena123', minLength: 10})
   @IsString()
-  @MinLength(8, { message: 'la contraseña debe tener al menos 8 caracteres' })
+  @MinLength(10, { message: 'la contraseña debe tener al menos 10 caracteres' })
   contrasena!: string;
 
   /** Nombre para mostrar del usuario. */

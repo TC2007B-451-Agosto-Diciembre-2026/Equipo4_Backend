@@ -79,7 +79,7 @@ CREATE TABLE recovery_code (
 );
 
 INSERT INTO rol (nombre, alias) VALUES
-('Usuario', 'user');
+('Usuario', 'user'),
 ('Administrador', 'admin');
 
 INSERT INTO fuente (tipo_fuente, valor_fuente) VALUES
