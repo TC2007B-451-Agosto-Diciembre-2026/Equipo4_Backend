@@ -102,6 +102,15 @@ export class UsersRepository {
       [id],
     );
   }
+
+  async updatePassword(usuarioId: string, contrasena: string, salt: string): Promise<void> {
+    await this.pool.query(
+      `UPDATE usuario
+      SET contrasena = ?, salt = ?
+      WHERE id = ?`,
+      [contrasena, salt, usuarioId],
+    );
+  }
 }
 
 /** Mapea una fila cruda de `mysql2` (snake_case) a {@link User}. */
