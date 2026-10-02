@@ -4,7 +4,7 @@ import { DB_POOL } from '../database/database.module';
 import { Reporte } from './entities/reporte.entity';
 
 const COLUMNS =
-  'id, nombre, descripcion, longitud, latitud, foto, usuario_id, ' +
+  'id, nombre, descripcion, longitud, latitud, foto, precio, zona, contacto_ofertante, usuario_id, ' +
   'fuente_id, estado_id, tipo_propiedad_id, tipo_fraude_id, ' +
   'created_at, updated_at, deleted_at';
 
@@ -90,10 +90,11 @@ export class ReportesRepository {
     try {
       const [result] = await this.pool.query<ResultSetHeader>(
         `INSERT INTO reporte
-           (nombre, descripcion, longitud, latitud, foto, usuario_id,
-            fuente_id, estado_id, tipo_propiedad_id, tipo_fraude_id)
-         VALUES (?, ?, ?, ?, ?, ?, ?,
-                 (SELECT id FROM estado WHERE nombre = 'Pendiente' LIMIT 1),
+        (nombre, descripcion, longitud, latitud, foto,
+        precio, zona, contacto_ofertante, usuario_id,
+        fuente_id, estado_id, tipo_propiedad_id, tipo_fraude_id)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
+                (SELECT id FROM estado WHERE nombre = 'Pendiente' LIMIT 1),
                  ?, ?)`,
         [
           reporte.nombre,
@@ -101,6 +102,9 @@ export class ReportesRepository {
           reporte.longitud,
           reporte.latitud,
           reporte.foto,
+          reporte.precio,
+          reporte.zona,
+          reporte.contactoOfertante,
           reporte.usuarioId,
           reporte.fuenteId,
           reporte.tipoPropiedadId,
@@ -139,6 +143,9 @@ export class ReportesRepository {
       longitud: 'longitud',
       latitud: 'latitud',
       foto: 'foto',
+      precio: 'precio',
+      zona: 'zona',
+      contactoOfertante: 'contacto_ofertante',
       fuenteId: 'fuente_id',
       estadoId: 'estado_id',
       tipoPropiedadId: 'tipo_propiedad_id',
@@ -197,6 +204,10 @@ function toEntity(row: any): Reporte {
   reporte.longitud = Number(row.longitud);
   reporte.latitud = Number(row.latitud);
   reporte.foto = row.foto;
+  // DECIMAL llega como string desde mysql2; NULL se queda como null
+  reporte.precio = row.precio === null ? null : Number(row.precio);
+  reporte.zona = row.zona;
+  reporte.contactoOfertante = row.contacto_ofertante;
   reporte.usuarioId = row.usuario_id;
   reporte.fuenteId = row.fuente_id;
   reporte.estadoId = row.estado_id;

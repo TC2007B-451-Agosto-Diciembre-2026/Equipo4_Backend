@@ -48,6 +48,9 @@ CREATE TABLE reporte (
     longitud DECIMAL(11, 8) NOT NULL,
     latitud DECIMAL(10, 8) NOT NULL,
     foto VARCHAR(255) NOT NULL,
+    precio DECIMAL(10, 2) NULL DEFAULT NULL,
+    zona VARCHAR(150) NULL DEFAULT NULL,
+    contacto_ofertante VARCHAR(150) NULL DEFAULT NULL,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
     deleted_at TIMESTAMP NULL DEFAULT NULL,
@@ -69,7 +72,9 @@ CREATE TABLE reporte (
 );
 
 INSERT INTO rol (nombre, alias) VALUES
-('Usuario', 'user');
+('Usuario', 'user'),
+('Administrador', 'admin')
+;
 
 INSERT INTO fuente (tipo_fuente, valor_fuente) VALUES
 ('Plataforma', 'Airbnb'),

@@ -26,6 +26,15 @@ export class ReporteResponseDto {
 })
 fotoUrl!: string;
 
+@ApiProperty({ example: 4200, nullable: true })
+precio!: number | null;
+
+@ApiProperty({ example: 'Condesa, CDMX', nullable: true })
+zona!: string | null;
+
+@ApiProperty({ example: '+52 55 0000 0000', nullable: true })
+contactoOfertante!: string | null;
+
 @ApiProperty({
   example: 'b3f1c2a0-4e9d-4a7a-9c2e-1f8a6d2b7e10',
   description: 'FK hacia usuario.id (quien reportó)',
@@ -62,6 +71,9 @@ usuarioId!: string;
     dto.longitud = reporte.longitud;
     dto.latitud = reporte.latitud;
     dto.fotoUrl = reporte.foto;
+    dto.precio = reporte.precio;
+    dto.zona = reporte.zona;
+    dto.contactoOfertante = reporte.contactoOfertante;
     dto.usuarioId = reporte.usuarioId;
     dto.fuenteId = reporte.fuenteId;
     dto.estadoId = reporte.estadoId;

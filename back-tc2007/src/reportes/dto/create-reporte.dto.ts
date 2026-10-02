@@ -1,6 +1,10 @@
 import { ApiProperty } from '@nestjs/swagger';
 import {
   IsInt,
+  IsNumber,
+  IsOptional,
+  MaxLength,
+  Min,
   IsLatitude,
   IsLongitude,
   IsNotEmpty,
@@ -56,6 +60,27 @@ export class CreateReporteDto {
 @IsString()
 @IsNotEmpty()
 fotoTemp!: string;
+
+  /** Precio del anuncio en MXN (opcional). */
+  @ApiProperty({ example: 4200, required: false })
+  @IsOptional()
+  @IsNumber({ maxDecimalPlaces: 2 })
+  @Min(0)
+  precio?: number;
+
+  /** Zona o colonia escrita por el usuario (opcional). */
+  @ApiProperty({ example: 'Condesa, CDMX', required: false })
+  @IsOptional()
+  @IsString()
+  @MaxLength(150)
+  zona?: string;
+
+  /** Teléfono o perfil del ofertante (opcional). */
+  @ApiProperty({ example: '+52 55 0000 0000', required: false })
+  @IsOptional()
+  @IsString()
+  @MaxLength(150)
+  contactoOfertante?: string;
 
   /** FK hacia `fuente.id`. Debe existir en el catálogo de fuentes. */
   @ApiProperty({ example: 1 })

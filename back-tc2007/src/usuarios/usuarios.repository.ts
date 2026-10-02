@@ -19,7 +19,7 @@ export class UsuariosRepository {
   constructor(@Inject(DB_POOL) private readonly pool: Pool) {}
 
   /** Lista los usuarios activos, ordenados por fecha de creación. */
-  async findAll(): Promise<Usuario[]> {
+   async findAll(): Promise<Usuario[]> {
     const [rows] = await this.pool.query<RowDataPacket[]>(
       `SELECT ${COLUMNS} FROM usuario WHERE deleted_at IS NULL ORDER BY created_at`,
     );
@@ -27,10 +27,9 @@ export class UsuariosRepository {
   }
 
   /** Busca un usuario activo por id (UUID). `undefined` si no existe o está borrado. */
-  async findById(id: string): Promise<Usuario | undefined> {
+    async findById(id: string): Promise<Usuario | undefined> {
     const [rows] = await this.pool.query<RowDataPacket[]>(
-      `SELECT ${COLUMNS} FROM usuario WHERE id = ? AND deleted_at IS NULL`,
-      [id],
+      `SELECT ${COLUMNS} FROM usuario WHERE id = '${id}' AND deleted_at IS NULL`,
     );
     return rows[0] && toEntity(rows[0]);
   }
@@ -50,15 +49,7 @@ export class UsuariosRepository {
     try {
       await this.pool.query<ResultSetHeader>(
         `INSERT INTO usuario (id, correo, contrasena, salt, nombre, rol_id)
-         VALUES (?, ?, ?, ?, ?, ?)`,
-        [
-          id,
-          usuario.correo,
-          usuario.contrasena,
-          usuario.salt,
-          usuario.nombre,
-          usuario.rolId,
-        ],
+         VALUES ('${id}', '${usuario.correo}', '${usuario.contrasena}', '${usuario.salt}', '${usuario.nombre}', ${usuario.rolId})`,
       );
       return (await this.findById(id))!;
     } catch (err: any) {
@@ -79,36 +70,29 @@ export class UsuariosRepository {
     id: string,
     changes: Partial<Usuario>,
   ): Promise<Usuario | undefined> {
-    const columnas: string[] = [];
-    const valores: unknown[] = [];
+    const asignaciones: string[] = [];
 
     if (changes.correo !== undefined) {
-      columnas.push('correo = ?');
-      valores.push(changes.correo);
+      asignaciones.push(`correo = '${changes.correo}'`);
     }
     if (changes.contrasena !== undefined) {
-      columnas.push('contrasena = ?');
-      valores.push(changes.contrasena);
+      asignaciones.push(`contrasena = '${changes.contrasena}'`);
     }
     if (changes.salt !== undefined) {
-      columnas.push('salt = ?');
-      valores.push(changes.salt);
+      asignaciones.push(`salt = '${changes.salt}'`);
     }
     if (changes.nombre !== undefined) {
-      columnas.push('nombre = ?');
-      valores.push(changes.nombre);
+      asignaciones.push(`nombre = '${changes.nombre}'`);
     }
     if (changes.rolId !== undefined) {
-      columnas.push('rol_id = ?');
-      valores.push(changes.rolId);
+      asignaciones.push(`rol_id = ${changes.rolId}`);
     }
 
-    if (columnas.length === 0) return this.findById(id);
+    if (asignaciones.length === 0) return this.findById(id);
 
     try {
       await this.pool.query(
-        `UPDATE usuario SET ${columnas.join(', ')} WHERE id = ? AND deleted_at IS NULL`,
-        [...valores, id],
+        `UPDATE usuario SET ${asignaciones.join(', ')} WHERE id = '${id}' AND deleted_at IS NULL`,
       );
     } catch (err: any) {
       if (err?.errno === 1452) {
@@ -126,8 +110,7 @@ export class UsuariosRepository {
    */
   async softDelete(id: string): Promise<boolean> {
     const [result] = await this.pool.query<ResultSetHeader>(
-      `UPDATE usuario SET deleted_at = NOW() WHERE id = ? AND deleted_at IS NULL`,
-      [id],
+      `UPDATE usuario SET deleted_at = NOW() WHERE id = '${id}' AND deleted_at IS NULL`,
     );
     return result.affectedRows > 0;
   }
