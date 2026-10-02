@@ -24,16 +24,18 @@ export class ReporteResponseDto {
   description: 'URL pública de la foto de evidencia',
   example: '/uploads/reportes/a3f1c2a0-4e9d-4a7a-9c2e-1f8a6d2b7e10.jpg',
 })
-fotoUrl!: string;
 
-@ApiProperty({ example: 4200, nullable: true })
-precio!: number | null;
+@ApiProperty({
+  description: 'URL pública de la imagen de portada',
+  example: '/uploads/reportes/portada.jpg',
+})
+portadaUrl!: string;
 
-@ApiProperty({ example: 'Condesa, CDMX', nullable: true })
-zona!: string | null;
-
-@ApiProperty({ example: '+52 55 0000 0000', nullable: true })
-contactoOfertante!: string | null;
+@ApiProperty({
+  description: 'URL pública de la imagen de evidencia',
+  example: '/uploads/reportes/evidencia.jpg',
+})
+evidenciaUrl!: string;
 
 @ApiProperty({
   example: 'b3f1c2a0-4e9d-4a7a-9c2e-1f8a6d2b7e10',
@@ -70,10 +72,8 @@ usuarioId!: string;
     dto.descripcion = reporte.descripcion;
     dto.longitud = reporte.longitud;
     dto.latitud = reporte.latitud;
-    dto.fotoUrl = reporte.foto;
-    dto.precio = reporte.precio;
-    dto.zona = reporte.zona;
-    dto.contactoOfertante = reporte.contactoOfertante;
+    dto.portadaUrl = reporte.portada;
+    dto.evidenciaUrl = reporte.evidencia;
     dto.usuarioId = reporte.usuarioId;
     dto.fuenteId = reporte.fuenteId;
     dto.estadoId = reporte.estadoId;

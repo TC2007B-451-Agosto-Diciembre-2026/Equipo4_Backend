@@ -1,10 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import {
   IsInt,
-  IsNumber,
-  IsOptional,
-  MaxLength,
-  Min,
   IsLatitude,
   IsLongitude,
   IsNotEmpty,
@@ -53,34 +49,21 @@ export class CreateReporteDto {
  * `POST /reportes/fotos` como `fotoTemp`. Debe existir en la
  * carpeta temporal en el momento de crear el reporte.
  */
-@ApiProperty({
-  description: 'fotoTemp devuelto por POST /reportes/fotos',
-  example: 'a3f1c2a0-4e9d-4a7a-9c2e-1f8a6d2b7e10.jpg',
-})
-@IsString()
-@IsNotEmpty()
-fotoTemp!: string;
+  @ApiProperty({
+    description:
+      'Referencias fotoTemp devueltas por POST /reportes/fotos. La primera corresponde a la portada y la segunda a la evidencia.',
+    example: [
+      'a3f1c2a0-4e9d-4a7a-9c2e-1f8a6d2b7e10.jpg',
+      'b4f2d3b1-5f8e-4b8c-8d3f-2a9b7e1c6f20.jpg',
+    ],
+    type: [String],
+    minItems: 2,
+    maxItems: 2,
+  })
+  @IsString({ each: true })
+  @IsNotEmpty({ each: true })
+  fotoTemps!: string[];
 
-  /** Precio del anuncio en MXN (opcional). */
-  @ApiProperty({ example: 4200, required: false })
-  @IsOptional()
-  @IsNumber({ maxDecimalPlaces: 2 })
-  @Min(0)
-  precio?: number;
-
-  /** Zona o colonia escrita por el usuario (opcional). */
-  @ApiProperty({ example: 'Condesa, CDMX', required: false })
-  @IsOptional()
-  @IsString()
-  @MaxLength(150)
-  zona?: string;
-
-  /** Teléfono o perfil del ofertante (opcional). */
-  @ApiProperty({ example: '+52 55 0000 0000', required: false })
-  @IsOptional()
-  @IsString()
-  @MaxLength(150)
-  contactoOfertante?: string;
 
   /** FK hacia `fuente.id`. Debe existir en el catálogo de fuentes. */
   @ApiProperty({ example: 1 })

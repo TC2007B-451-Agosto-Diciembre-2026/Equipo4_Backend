@@ -26,19 +26,11 @@ export class Reporte {
  * la foto se sube primero a una carpeta temporal (`POST /reportes/fotos`)
  * y se mueve aquí al crear el reporte (ver {@link ReportesService.create}).
  */
+  evidencia!: string;
 
-  foto!: string;
+  /** Ruta pública de la imagen de portada. */
+  portada!: string;
 
-
-
-  precio!: number | null;
-
-  zona!: string | null;
-
-  contactoOfertante!: string | null;
-
-
-  
 /**
  * FK hacia `usuario.id` (UUID). Se asigna a partir del token del
  * usuario autenticado (`CurrentUser().sub`), nunca desde el body:

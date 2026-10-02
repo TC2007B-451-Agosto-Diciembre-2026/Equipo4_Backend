@@ -47,10 +47,8 @@ CREATE TABLE reporte (
     descripcion TEXT NOT NULL,
     longitud DECIMAL(11, 8) NOT NULL,
     latitud DECIMAL(10, 8) NOT NULL,
-    foto VARCHAR(255) NOT NULL,
-    precio DECIMAL(10, 2) NULL DEFAULT NULL,
-    zona VARCHAR(150) NULL DEFAULT NULL,
-    contacto_ofertante VARCHAR(150) NULL DEFAULT NULL,
+    portada VARCHAR(255) NOT NULL,
+    evidencia VARCHAR(255) NOT NULL,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
     deleted_at TIMESTAMP NULL DEFAULT NULL,
@@ -71,10 +69,19 @@ CREATE TABLE reporte (
         FOREIGN KEY (tipo_fraude_id) REFERENCES tipo_fraude(id)
 );
 
+CREATE TABLE recovery_code (
+    id CHAR(36) PRIMARY KEY,
+    usuario_id CHAR(36) NOT NULL,
+    codigo VARCHAR(6) NOT NULL,
+    expira_en DATETIME NOT NULL,
+    usado BOOLEAN NOT NULL DEFAULT FALSE,
+
+    FOREIGN KEY (usuario_id) REFERENCES usuario(id)
+);
+
 INSERT INTO rol (nombre, alias) VALUES
 ('Usuario', 'user'),
-('Administrador', 'admin')
-;
+('Administrador', 'admin');
 
 INSERT INTO fuente (tipo_fuente, valor_fuente) VALUES
 ('Plataforma', 'Airbnb'),
