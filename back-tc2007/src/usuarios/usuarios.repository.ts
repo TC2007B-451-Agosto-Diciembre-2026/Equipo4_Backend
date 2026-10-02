@@ -8,9 +8,6 @@ const COLUMNS =
   'id, correo, contrasena, salt, nombre, rol_id, created_at, deleted_at';
 
 /**
- * Acceso a datos de `usuario` sobre `mysql2` (sin ORM). Todas las
- * queries usan placeholders `?` (parametrizadas) para evitar
- * inyección SQL; ninguna interpola valores directo en el string.
  *
  * Aplica borrado lógico: toda lectura filtra `deleted_at IS NULL`.
  */

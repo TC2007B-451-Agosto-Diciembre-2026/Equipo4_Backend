@@ -9,6 +9,7 @@ export interface JwtPayload {
     type: 'access' | 'refresh';
     iat: number;
     exp: number;
+    rolId: number;
 }
 
 function now(): number {

@@ -51,6 +51,18 @@ export class UsersRepository {
     return (await this.findById(id))!;
   }
 
+  async saveAdmin(correo: string, contrasena: string, salt: string, nombre: string): Promise<User> {
+    const id = randomUUID();
+    await this.pool.query(
+      `INSERT INTO usuario
+        (id, correo, contrasena, salt, nombre, rol_id)
+      VALUES (?, ?, ?, ?, ?, 2)`,
+      [id, correo, contrasena, salt, nombre],
+    );
+
+    return (await this.findById(id))!;
+  }
+
   /** Busca un usuario activo por id (UUID). Usado al refrescar el token. */
   async findById(id: string): Promise<User | undefined> {
     const [rows] = await this.pool.query<RowDataPacket[]>(
@@ -58,6 +70,46 @@ export class UsersRepository {
       [id],
     );
     return rows[0] && toEntity(rows[0]);
+  }
+
+    async createRecoveryCode(usuarioId: string, codigo: string, expiraEn: Date): Promise<void> {
+    const id = randomUUID();
+    await this.pool.query<ResultSetHeader>(
+      `INSERT INTO recovery_code
+        (id, usuario_id, codigo, expira_en, usado)
+       VALUES (?, ?, ?, ?, FALSE)`,
+      [id, usuarioId, codigo, expiraEn],
+    );
+  }
+
+  async findRecoveryCode(usuarioId: string, codigo: string): Promise<RowDataPacket | undefined> {
+    const [rows] = await this.pool.query<RowDataPacket[]>(
+      `SELECT id, usuario_id, codigo, expira_en, usado
+       FROM recovery_code
+       WHERE usuario_id = ?
+       AND codigo = ?
+       AND usado = FALSE`,
+      [usuarioId, codigo],
+    );
+    return rows[0];
+  }
+
+  async useRecoveryCode(id: string): Promise<void> {
+    await this.pool.query(
+      `UPDATE recovery_code
+       SET usado = TRUE
+       WHERE id = ?`,
+      [id],
+    );
+  }
+
+  async updatePassword(usuarioId: string, contrasena: string, salt: string): Promise<void> {
+    await this.pool.query(
+      `UPDATE usuario
+      SET contrasena = ?, salt = ?
+      WHERE id = ?`,
+      [contrasena, salt, usuarioId],
+    );
   }
 }
 
@@ -70,5 +122,6 @@ function toEntity(row: any): User {
   user.passwordHash = row.contrasena;
   user.salt = row.salt;
   user.createdAt = row.created_at;
+  user.rolId = row.rol_id;
   return user;
 }

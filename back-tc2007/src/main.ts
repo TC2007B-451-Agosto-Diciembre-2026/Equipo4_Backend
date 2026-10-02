@@ -9,6 +9,8 @@ import {
   FOTOS_TMP_DIR,
   UPLOADS_ROOT,
 } from './reportes/uploads.paths';
+import { loadEnvFile } from 'node:process';
+loadEnvFile();
 
 /**
  * Punto de entrada de la API. Levanta la aplicación NestJS, activa la

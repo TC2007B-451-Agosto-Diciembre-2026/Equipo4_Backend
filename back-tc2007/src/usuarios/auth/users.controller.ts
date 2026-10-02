@@ -1,8 +1,11 @@
-import { Body, Controller, HttpCode, Post } from '@nestjs/common';
+import { Body, Controller, HttpCode, Post, UseGuards } from '@nestjs/common';
+import { AuthGuard } from './auth.guard';
+import { AdminGuard } from './admin.guard';
 import { AuthService } from './users.service';
 import { LoginDto } from './dto/login.dto';
 import { RefreshDto } from './dto/refresh.dto';
 import { RegisterDto } from './dto/register.dto';
+import { ResetPasswordDto } from './dto/reset-password.dto';
 
 @Controller('auth')
 export class AuthController {
@@ -14,6 +17,12 @@ export class AuthController {
     return this.service.register(dto);
   }
 
+  @Post('register-admin')
+    @UseGuards(AuthGuard, AdminGuard)
+    registerAdmin(@Body() dto: RegisterDto) {
+      return this.service.registerAdmin(dto);
+    }
+
   @Post('login')
   @HttpCode(200)
   login(@Body() dto: LoginDto) {
@@ -24,5 +33,17 @@ export class AuthController {
   @HttpCode(200)
   refresh(@Body() dto: RefreshDto) {
     return this.service.refresh(dto);
+  }
+
+  @Post('forgot-password')
+  @HttpCode(200)
+  forgotPassword(@Body() dto: { correo: string }) {
+    return this.service.forgotPassword(dto.correo);
+  }
+
+  @Post('reset-password')
+  @HttpCode(200)
+  resetPassword(@Body() dto: ResetPasswordDto) {
+    return this.service.resetPassword(dto);
   }
 }
