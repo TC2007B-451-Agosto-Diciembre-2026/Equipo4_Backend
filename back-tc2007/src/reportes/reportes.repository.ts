@@ -90,7 +90,7 @@ export class ReportesRepository {
     try {
       const [result] = await this.pool.query<ResultSetHeader>(
         `INSERT INTO reporte
-           (nombre, descripcion, longitud, latitud, foto, usuario_id,
+           (nombre, descripcion, longitud, latitud, portada, evidencia, usuario_id,
             fuente_id, estado_id, tipo_propiedad_id, tipo_fraude_id)
          VALUES (?, ?, ?, ?, ?, ?, ?,
                  (SELECT id FROM estado WHERE nombre = 'Pendiente' LIMIT 1),
@@ -100,7 +100,8 @@ export class ReportesRepository {
           reporte.descripcion,
           reporte.longitud,
           reporte.latitud,
-          reporte.foto,
+          reporte.evidencia,
+          reporte.portada,
           reporte.usuarioId,
           reporte.fuenteId,
           reporte.tipoPropiedadId,
@@ -129,16 +130,14 @@ export class ReportesRepository {
    * se mueve un reporte de "Pendiente" a otro estado).
    * @throws ConflictException si alguna FK referenciada no existe.
    */
-  async update(
-    id: number,
-    changes: CambiosReporte,
-  ): Promise<Reporte | undefined> {
+  async update(id: number, changes: CambiosReporte): Promise<Reporte | undefined> {
     const mapaColumnas: Record<string, string> = {
       nombre: 'nombre',
       descripcion: 'descripcion',
       longitud: 'longitud',
       latitud: 'latitud',
-      foto: 'foto',
+      portada: 'portada',
+      evidencia: 'evidencia',
       fuenteId: 'fuente_id',
       estadoId: 'estado_id',
       tipoPropiedadId: 'tipo_propiedad_id',
@@ -196,7 +195,8 @@ function toEntity(row: any): Reporte {
   reporte.descripcion = row.descripcion;
   reporte.longitud = Number(row.longitud);
   reporte.latitud = Number(row.latitud);
-  reporte.foto = row.foto;
+  reporte.portada = row.portada;
+  reporte.evidencia = row.evidencia;
   reporte.usuarioId = row.usuario_id;
   reporte.fuenteId = row.fuente_id;
   reporte.estadoId = row.estado_id;

@@ -29,14 +29,16 @@ export class ReportesService {
    * `POST /reportes`, más una URL pública para previsualizarla.
    * @throws BadRequestException si no se mandó ningún archivo.
    */
-  registrarFotoTemporal(file: Express.Multer.File): FotoTempResponseDto {
-    if (!file) {
-      throw new BadRequestException('No se recibió ningún archivo (campo "foto")');
+  registrarFotoTemporal(files: Express.Multer.File[]): FotoTempResponseDto[] {
+    if (!files || files.length !== 2) {
+      throw new BadRequestException('Debes subir exactamente 2 fotos: una portada y una evidencia');
     }
-    const dto = new FotoTempResponseDto();
-    dto.fotoTemp = file.filename;
-    dto.url = `/uploads/tmp/${file.filename}`;
-    return dto;
+    return files.map((file) => {
+      const dto = new FotoTempResponseDto();
+      dto.fotoTemp = file.filename;
+      dto.url = `/uploads/tmp/${file.filename}`;
+      return dto;
+    });
   }
 
   /**
@@ -46,17 +48,21 @@ export class ReportesService {
    * por `data.fotoTemp` se mueve de temporales a almacenamiento
    * definitivo como parte de la creación (ver {@link moverFotoAPermanente}).
    */
-  async create(
-    usuarioId: string,
-    data: CreateReporteDto,
-  ): Promise<ReporteResponseDto> {
-    const foto = this.moverFotoAPermanente(data.fotoTemp);
+  async create(usuarioId: string, data: CreateReporteDto): Promise<ReporteResponseDto> {
+    if (data.fotoTemps.length !== 2) {
+      throw new BadRequestException(
+        'El reporte debe tener exactamente 2 fotos',
+      );
+    }
+    const portada = this.moverFotoAPermanente(data.fotoTemps[0]);
+    const evidencia = this.moverFotoAPermanente(data.fotoTemps[1]);
     const reporte = await this.repository.save({
       nombre: data.nombre,
       descripcion: data.descripcion,
       longitud: data.longitud,
       latitud: data.latitud,
-      foto,
+      evidencia,
+      portada,
       usuarioId,
       fuenteId: data.fuenteId,
       tipoPropiedadId: data.tipoPropiedadId,
@@ -106,10 +112,16 @@ export class ReportesService {
     // `fotoTemp` no es una columna real (ver CreateReporteDto): si viene,
     // se traduce a `foto` moviendo el archivo de temporales a definitivo,
     // igual que en `create`.
-    const { fotoTemp, ...resto } = changes;
-    const cambios: Partial<UpdateReporteDto> & { foto?: string } = resto;
-    if (fotoTemp) {
-      cambios.foto = this.moverFotoAPermanente(fotoTemp);
+    const { fotoTemps, ...resto } = changes;
+    const cambios: Partial<UpdateReporteDto> & {portada?: string; evidencia?: string} = resto;
+    if (fotoTemps) {
+      if (fotoTemps.length !== 2) {
+        throw new BadRequestException(
+          'Al actualizar las fotos debes proporcionar exactamente 2',
+        );
+      }
+      cambios.portada = this.moverFotoAPermanente(fotoTemps[0]);
+      cambios.evidencia = this.moverFotoAPermanente(fotoTemps[1]);
     }
     const actualizado = await this.repository.update(id, cambios as any);
     return ReporteResponseDto.fromEntity(actualizado!);

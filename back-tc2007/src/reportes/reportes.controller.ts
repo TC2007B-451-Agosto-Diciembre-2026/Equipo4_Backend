@@ -10,9 +10,9 @@ import {
   Post,
   UseGuards,
   UseInterceptors,
-  UploadedFile,
+  UploadedFiles,
 } from '@nestjs/common';
-import { FileInterceptor } from '@nestjs/platform-express';
+import { FilesInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
 import { randomUUID } from 'node:crypto';
 import { extname } from 'node:path';
@@ -66,14 +66,23 @@ export class ReportesController {
   @ApiBody({
     schema: {
       type: 'object',
-      properties: { foto: { type: 'string', format: 'binary' } },
-      required: ['foto'],
+      properties:
+      {fotos:
+        {type: 'array', items:
+          {type: 'string',format: 'binary'}, minItems: 2, maxItems: 2,
+        },
+      },
+    required: ['fotos'],
     },
   })
-  @ApiOkResponse({ type: FotoTempResponseDto })
+  
+  @ApiOkResponse({
+    type: FotoTempResponseDto,
+    isArray: true,
+  })
   @Post('fotos')
   @UseInterceptors(
-    FileInterceptor('foto', {
+    FilesInterceptor('fotos', 2, {
       storage: diskStorage({
         destination: FOTOS_TMP_DIR,
         filename: (_req, file, callback) => {
@@ -82,10 +91,10 @@ export class ReportesController {
       }),
     }),
   )
-  uploadFoto(
-    @UploadedFile() file: Express.Multer.File,
-  ): FotoTempResponseDto {
-    return this.service.registrarFotoTemporal(file);
+  uploadFotos(
+    @UploadedFiles() files: Express.Multer.File[],
+  ): FotoTempResponseDto[] {
+    return this.service.registrarFotoTemporal(files);
   }
 
   /**
