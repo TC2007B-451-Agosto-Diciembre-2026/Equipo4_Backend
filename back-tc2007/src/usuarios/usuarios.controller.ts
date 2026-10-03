@@ -33,7 +33,7 @@ import { UpdateUsuarioDto } from './dto/update-usuario.dto';
  * usuario final ocurre en `POST /auth/register`. Todas las rutas
  * requieren un Bearer token válido (ver {@link AuthGuard}).
  */
-@ApiTags('usuarios')
+@ApiTags('Usuarios')
 @ApiBearerAuth('access-token')
 @Controller('usuarios')
 @UseGuards(AuthGuard)
