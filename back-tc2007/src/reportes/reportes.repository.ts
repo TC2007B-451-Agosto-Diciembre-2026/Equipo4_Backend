@@ -4,7 +4,8 @@ import { DB_POOL } from '../database/database.module';
 import { Reporte } from './entities/reporte.entity';
 
 const COLUMNS =
-  'id, nombre, descripcion, longitud, latitud, foto, usuario_id, ' +
+  'id, nombre, descripcion, longitud, latitud, portada, evidencia, ' +
+  'precio, zona, contacto_ofertante, usuario_id, ' +
   'fuente_id, estado_id, tipo_propiedad_id, tipo_fraude_id, ' +
   'created_at, updated_at, deleted_at';
 
@@ -15,7 +16,7 @@ const COLUMNS =
  */
 type NuevoReporte = Omit<
   Reporte,
-  "id" | "createdAt" | "updatedAt" | "deletedAt" | "estadoId"
+  'id' | 'createdAt' | 'updatedAt' | 'deletedAt' | 'estadoId'
 >;
 
 /**
@@ -26,7 +27,7 @@ const ESTADO_INICIAL_INEXISTENTE_ERRNO = 1048;
 
 /** Cambios parciales aceptados por `update`. `usuarioId` no es editable (el dueño de un reporte no cambia). */
 type CambiosReporte = Partial<
-  Omit<Reporte, "id" | "usuarioId" | "createdAt" | "updatedAt" | "deletedAt">
+  Omit<Reporte, 'id' | 'usuarioId' | 'createdAt' | 'updatedAt' | 'deletedAt'>
 >;
 
 /** errno de MySQL para violación de FK (`reporte` → `fuente`/`estado`/`tipo_propiedad`/`tipo_fraude`/`usuario`). */
@@ -83,16 +84,16 @@ export class ReportesRepository {
    * elegir el estado inicial de un reporte.
    * @throws ConflictException si `fuenteId`, `tipoPropiedadId` o
    * `tipoFraudeId` no existen (errno 1452), o si el catálogo
-   * `estado` no tiene ninguna fila "Pendiente" (errno 1048 — caso
-   * borde si alguien edita los seeds).
+   * `estado` no tiene ninguna fila "Pendiente" (errno 1048).
    */
   async save(reporte: NuevoReporte): Promise<Reporte> {
     try {
       const [result] = await this.pool.query<ResultSetHeader>(
         `INSERT INTO reporte
-           (nombre, descripcion, longitud, latitud, portada, evidencia, usuario_id,
+           (nombre, descripcion, longitud, latitud, portada, evidencia,
+            precio, zona, contacto_ofertante, usuario_id,
             fuente_id, estado_id, tipo_propiedad_id, tipo_fraude_id)
-         VALUES (?, ?, ?, ?, ?, ?, ?,
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
                  (SELECT id FROM estado WHERE nombre = 'Pendiente' LIMIT 1),
                  ?, ?)`,
         [
@@ -100,8 +101,11 @@ export class ReportesRepository {
           reporte.descripcion,
           reporte.longitud,
           reporte.latitud,
-          reporte.evidencia,
           reporte.portada,
+          reporte.evidencia,
+          reporte.precio,
+          reporte.zona,
+          reporte.contactoOfertante,
           reporte.usuarioId,
           reporte.fuenteId,
           reporte.tipoPropiedadId,
@@ -138,6 +142,9 @@ export class ReportesRepository {
       latitud: 'latitud',
       portada: 'portada',
       evidencia: 'evidencia',
+      precio: 'precio',
+      zona: 'zona',
+      contactoOfertante: 'contacto_ofertante',
       fuenteId: 'fuente_id',
       estadoId: 'estado_id',
       tipoPropiedadId: 'tipo_propiedad_id',
@@ -185,8 +192,8 @@ export class ReportesRepository {
 
 /**
  * Mapea una fila cruda de `mysql2` (snake_case) a {@link Reporte}.
- * Convierte explícitamente `longitud`/`latitud` (columnas `DECIMAL`,
- * que `mysql2` devuelve como string) a `number`.
+ * Convierte explícitamente `longitud`/`latitud`/`precio` (columnas
+ * `DECIMAL`, que `mysql2` devuelve como string) a `number`.
  */
 function toEntity(row: any): Reporte {
   const reporte = new Reporte();
@@ -197,6 +204,9 @@ function toEntity(row: any): Reporte {
   reporte.latitud = Number(row.latitud);
   reporte.portada = row.portada;
   reporte.evidencia = row.evidencia;
+  reporte.precio = row.precio === null ? null : Number(row.precio);
+  reporte.zona = row.zona;
+  reporte.contactoOfertante = row.contacto_ofertante;
   reporte.usuarioId = row.usuario_id;
   reporte.fuenteId = row.fuente_id;
   reporte.estadoId = row.estado_id;

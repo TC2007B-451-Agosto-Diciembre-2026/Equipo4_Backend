@@ -31,6 +31,15 @@ export class Reporte {
   /** Ruta pública de la imagen de portada. */
   portada!: string;
 
+    /** Precio del anuncio en MXN (opcional, DECIMAL(10,2)). */
+  precio!: number | null;
+
+  /** Zona o colonia escrita por el usuario (opcional). */
+  zona!: string | null;
+
+  /** Teléfono o perfil del ofertante (opcional). */
+  contactoOfertante!: string | null;
+
 /**
  * FK hacia `usuario.id` (UUID). Se asigna a partir del token del
  * usuario autenticado (`CurrentUser().sub`), nunca desde el body:

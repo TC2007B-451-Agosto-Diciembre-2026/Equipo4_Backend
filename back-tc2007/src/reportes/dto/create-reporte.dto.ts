@@ -1,10 +1,19 @@
 import { ApiProperty } from '@nestjs/swagger';
 import {
+  ArrayMaxSize,
+  ArrayMinSize,
+  IsArray,
   IsInt,
   IsLatitude,
   IsLongitude,
   IsNotEmpty,
+  IsNumber,
+  IsOptional,
   IsString,
+  Matches,
+  Max,
+  MaxLength,
+  Min,
 } from 'class-validator';
 
 /**
@@ -60,10 +69,42 @@ export class CreateReporteDto {
     minItems: 2,
     maxItems: 2,
   })
+  @IsArray()
+  @ArrayMinSize(2)
+  @ArrayMaxSize(2)
   @IsString({ each: true })
   @IsNotEmpty({ each: true })
   fotoTemps!: string[];
 
+    /** Precio del anuncio en MXN (opcional). */
+    /** Precio del anuncio en MXN (opcional). Solo números, máx. 2 decimales. */
+  @ApiProperty({ example: 4200.5, required: false })
+  @IsOptional()
+  @IsNumber(
+    { maxDecimalPlaces: 2, allowNaN: false, allowInfinity: false },
+    { message: 'El precio debe ser un número con máximo 2 decimales' },
+  )
+  @Min(0, { message: 'El precio no puede ser negativo' })
+  @Max(99999999.99, { message: 'El precio es demasiado grande' })
+  precio?: number;
+
+  /** Zona o colonia (opcional). Letras, números, espacios y . , # - */
+  @ApiProperty({ example: 'Condesa, CDMX', required: false })
+  @IsOptional()
+  @IsString()
+  @Matches(/^[A-Za-zÁÉÍÓÚÜÑáéíóúüñ0-9 .,#-]{3,150}$/, {
+    message: 'La zona solo puede tener letras, números, espacios y . , # - (3 a 150 caracteres)',
+  })
+  zona?: string;
+
+  /** Teléfono del ofertante (opcional). Solo dígitos, + al inicio, espacios o guiones. */
+  @ApiProperty({ example: '+52 55 1234 5678', required: false })
+  @IsOptional()
+  @IsString()
+  @Matches(/^\+?[0-9 -]{10,20}$/, {
+    message: 'El contacto debe ser un número de teléfono válido (sin letras)',
+  })
+  contactoOfertante?: string;
 
   /** FK hacia `fuente.id`. Debe existir en el catálogo de fuentes. */
   @ApiProperty({ example: 1 })
