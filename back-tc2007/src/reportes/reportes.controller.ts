@@ -35,6 +35,7 @@ import { FotoTempResponseDto } from './dto/foto-temp-response.dto';
 import { CreateReporteDto } from './dto/create-reporte.dto';
 import { UpdateReporteDto } from './dto/update-reporte.dto';
 import { FOTOS_TMP_DIR } from './uploads.paths';
+import { AdminGuard } from 'src/usuarios/auth/admin.guard';
 
 /**
  * CRUD de reportes de fraude (`/reportes`). Requiere Bearer token.
@@ -156,6 +157,7 @@ export class ReportesController {
   @ApiParam({ name: 'id', type: Number })
   @ApiOkResponse({ type: ReporteResponseDto })
   @Patch(':id')
+  @UseGuards(AdminGuard)
   update(
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: UpdateReporteDto,

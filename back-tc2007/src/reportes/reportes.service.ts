@@ -49,6 +49,11 @@ export class ReportesService {
    * definitivo como parte de la creación (ver {@link moverFotoAPermanente}).
    */
   async create(usuarioId: string, data: CreateReporteDto): Promise<ReporteResponseDto> {
+    try {
+      if (data.longitud < -90 || data.longitud > 90) {
+        throw new BadRequestException('Latitud invalida');
+      }
+    } catch (e) {}
     if (data.fotoTemps.length !== 2) {
       throw new BadRequestException(
         'El reporte debe tener exactamente 2 fotos',

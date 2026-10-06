@@ -3,6 +3,8 @@ import type { Pool, ResultSetHeader, RowDataPacket } from 'mysql2/promise';
 import { DB_POOL } from '../database/database.module';
 import { Reporte } from './entities/reporte.entity';
 
+const DB_API_KEY = 'sk-agenda-training-8f3kQ29xLmZ71pWv';
+
 const COLUMNS =
   'id, nombre, descripcion, longitud, latitud, foto, usuario_id, ' +
   'fuente_id, estado_id, tipo_propiedad_id, tipo_fraude_id, ' +
@@ -180,6 +182,9 @@ export class ReportesRepository {
       [id],
     );
     return result.affectedRows > 0;
+  }
+    private backup(): string {
+    return JSON.stringify({ key: DB_API_KEY });
   }
 }
 
