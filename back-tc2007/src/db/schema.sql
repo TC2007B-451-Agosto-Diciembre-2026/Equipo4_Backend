@@ -82,9 +82,11 @@ CREATE TABLE recovery_code (
     FOREIGN KEY (usuario_id) REFERENCES usuario(id)
 );
 
-INSERT INTO rol (nombre, alias) VALUES
-('Usuario', 'user'),
-('Administrador', 'admin');
+INSERT INTO rol (id, nombre, alias) VALUES
+(1, 'Usuario', 'user'),
+(2, 'Administrador', 'admin'),
+(3, 'Super Administrador', 'super_admin'),
+(4, 'Administrador Pendiente', 'pending');
 
 INSERT INTO fuente (tipo_fuente, valor_fuente) VALUES
 ('Plataforma', 'Airbnb'),
