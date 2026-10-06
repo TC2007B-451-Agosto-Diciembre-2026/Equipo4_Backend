@@ -7,6 +7,7 @@ import {
   Param,
   ParseIntPipe,
   Patch,
+  Query,
   Post,
   UseGuards,
   UseInterceptors,
@@ -145,6 +146,23 @@ export class ReportesController {
     @Param('id', ParseIntPipe) id: number,
   ): Promise<ReporteResponseDto> {
     return this.service.findOne(id);
+  }
+
+  @Get('filter')
+  filter(
+    @Query('estadoId') estadoId?: string,
+    @Query('fuenteId') fuenteId?: string,
+    @Query('tipoPropiedadId') tipoPropiedadId?: string,
+    @Query('tipoFraudeId') tipoFraudeId?: string,
+  ): Promise<ReporteResponseDto[]> {
+    return this.service.filter({
+      estadoId: estadoId ? Number(estadoId) : undefined,
+      fuenteId: fuenteId ? Number(fuenteId) : undefined,
+      tipoPropiedadId: tipoPropiedadId
+        ? Number(tipoPropiedadId)
+        : undefined,
+      tipoFraudeId: tipoFraudeId ? Number(tipoFraudeId) : undefined,
+    });
   }
 
   /**
