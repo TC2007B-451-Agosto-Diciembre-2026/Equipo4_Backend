@@ -120,8 +120,8 @@ export class ReportesController {
   @ApiOperation({ summary: 'Listar reportes' })
   @ApiOkResponse({ type: ReporteResponseDto, isArray: true })
   @Get()
-  findAll(): Promise<ReporteResponseDto[]> {
-    return this.service.findAll();
+  findAll(@CurrentUser() user: JwtPayload): Promise<ReporteResponseDto[]> {
+    return this.service.findAll(user);
   }
 
   /**
@@ -143,9 +143,10 @@ export class ReportesController {
   @ApiOkResponse({ type: ReporteResponseDto })
   @Get(':id')
   findOne(
+    @CurrentUser() user: JwtPayload,
     @Param('id', ParseIntPipe) id: number,
   ): Promise<ReporteResponseDto> {
-    return this.service.findOne(id);
+    return this.service.findOne(id, user);
   }
 
   /**

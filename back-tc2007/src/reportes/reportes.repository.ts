@@ -51,13 +51,22 @@ const REFERENCED_ERRNO = 1451;
 export class ReportesRepository {
   constructor(@Inject(DB_POOL) private readonly pool: Pool) {}
 
-  /** Lista todos los reportes activos, más recientes primero. */
-  async findAll(): Promise<Reporte[]> {
+  /**
+   * Lista los reportes activos, más recientes primero.
+   * Con `excluirEstadoId` se omiten los de ese estado (se usa para
+   * ocultar los "En revisión" a la comunidad).
+   */
+  async findAll(excluirEstadoId?: number): Promise<Reporte[]> {
+    const filtro = excluirEstadoId !== undefined ? 'AND estado_id <> ?' : '';
     const [rows] = await this.pool.query<RowDataPacket[]>(
-      `SELECT ${COLUMNS} FROM reporte WHERE deleted_at IS NULL ORDER BY created_at DESC`,
+      `SELECT ${COLUMNS} FROM reporte
+       WHERE deleted_at IS NULL ${filtro}
+       ORDER BY created_at DESC`,
+      excluirEstadoId !== undefined ? [excluirEstadoId] : [],
     );
     return rows.map(toEntity);
   }
+
 
   /** Lista los reportes activos de un usuario específico (UUID), más recientes primero. */
   async findByUsuario(usuarioId: string): Promise<Reporte[]> {
@@ -96,7 +105,7 @@ export class ReportesRepository {
             precio, zona, contacto_ofertante, usuario_id,
             fuente_id, estado_id, tipo_propiedad_id, tipo_fraude_id)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
-                 (SELECT id FROM estado WHERE nombre = 'Pendiente' LIMIT 1),
+                 (SELECT id FROM estado WHERE nombre = 'En revisión' LIMIT 1),
                  ?, ?)`,
         [
           reporte.nombre,
@@ -123,7 +132,7 @@ export class ReportesRepository {
       }
       if (err?.errno === ESTADO_INICIAL_INEXISTENTE_ERRNO) {
         throw new ConflictException(
-          "No existe el estado 'Pendiente' en el catálogo de estados",
+          "No existe el estado 'En revisión' en el catálogo de estados",
         );
       }
       throw err;
