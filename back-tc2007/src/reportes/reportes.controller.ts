@@ -36,6 +36,7 @@ import { FotoTempResponseDto } from './dto/foto-temp-response.dto';
 import { CreateReporteDto } from './dto/create-reporte.dto';
 import { UpdateReporteDto } from './dto/update-reporte.dto';
 import { FOTOS_TMP_DIR } from './uploads.paths';
+import { AdminGuard } from 'src/usuarios/auth/admin.guard';
 
 /**
  * CRUD de reportes de fraude (`/reportes`). Requiere Bearer token.
@@ -120,8 +121,8 @@ export class ReportesController {
   @ApiOperation({ summary: 'Listar reportes' })
   @ApiOkResponse({ type: ReporteResponseDto, isArray: true })
   @Get()
-  findAll(): Promise<ReporteResponseDto[]> {
-    return this.service.findAll();
+  findAll(@CurrentUser() user: JwtPayload): Promise<ReporteResponseDto[]> {
+    return this.service.findAll(user);
   }
 
   /**
@@ -143,9 +144,10 @@ export class ReportesController {
   @ApiOkResponse({ type: ReporteResponseDto })
   @Get(':id')
   findOne(
+    @CurrentUser() user: JwtPayload,
     @Param('id', ParseIntPipe) id: number,
   ): Promise<ReporteResponseDto> {
-    return this.service.findOne(id);
+    return this.service.findOne(id, user);
   }
 
   @Get('filter')
@@ -174,6 +176,7 @@ export class ReportesController {
   @ApiParam({ name: 'id', type: Number })
   @ApiOkResponse({ type: ReporteResponseDto })
   @Patch(':id')
+  @UseGuards(AdminGuard)
   update(
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: UpdateReporteDto,

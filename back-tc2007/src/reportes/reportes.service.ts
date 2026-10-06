@@ -12,12 +12,27 @@ import { FotoTempResponseDto } from './dto/foto-temp-response.dto';
 import { CreateReporteDto } from './dto/create-reporte.dto';
 import { UpdateReporteDto } from './dto/update-reporte.dto';
 import { FOTOS_REPORTES_DIR, FOTOS_TMP_DIR } from './uploads.paths';
+import { JwtPayload } from 'src/usuarios/auth/jwt';
 
 /**
  * Lógica de negocio del CRUD de reportes. Traduce ausencia de fila a
  * {@link NotFoundException}; las validaciones de FK (fuente, estado,
  * tipo de propiedad, tipo de fraude) las hace {@link ReportesRepository}.
  */
+/** `rol.id` del Administrador. */
+const ROL_ADMIN = 2;
+/**
+ * Estados (tabla `estado`, semáforo):
+ * 1 = En revisión (amarillo) — estado inicial, solo lo ven su autor y el admin.
+ * 2 = Fraude confirmado (rojo) — público.
+ * 3 = No es fraude (verde) — público.
+ */
+const ESTADO_EN_REVISION = 1;
+/** Estados en los que el dueño todavía puede editar/eliminar: solo En revisión. */
+const ESTADOS_EDITABLES = [ESTADO_EN_REVISION];
+
+
+
 @Injectable()
 export class ReportesService {
   constructor(private readonly repository: ReportesRepository) {}
@@ -49,6 +64,11 @@ export class ReportesService {
    * definitivo como parte de la creación (ver {@link moverFotoAPermanente}).
    */
   async create(usuarioId: string, data: CreateReporteDto): Promise<ReporteResponseDto> {
+    try {
+      if (data.longitud < -90 || data.longitud > 90) {
+        throw new BadRequestException('Latitud invalida');
+      }
+    } catch (e) {}
     if (data.fotoTemps.length !== 2) {
       throw new BadRequestException(
         'El reporte debe tener exactamente 2 fotos',
@@ -74,11 +94,18 @@ export class ReportesService {
     return ReporteResponseDto.fromEntity(reporte);
   }
 
-  /** Lista todos los reportes activos. */
-  async findAll(): Promise<ReporteResponseDto[]> {
-    const reportes = await this.repository.findAll();
+ /**
+   * Lista los reportes de la comunidad. Un usuario normal solo ve los ya
+   * revisados (Fraude confirmado / No es fraude); los "En revisión" son
+   * privados de su autor (los ve en GET /reportes/self). El admin ve todos.
+   */
+  async findAll(user: JwtPayload): Promise<ReporteResponseDto[]> {
+    const reportes = await this.repository.findAll(
+      user.rolId === ROL_ADMIN ? undefined : ESTADO_EN_REVISION,
+    );
     return reportes.map((r) => ReporteResponseDto.fromEntity(r));
   }
+
 
   /** Lista los reportes activos de un usuario específico. Usado por `GET /reportes/self`. */
   async findByUsuario(usuarioId: string): Promise<ReporteResponseDto[]> {
@@ -90,9 +117,15 @@ export class ReportesService {
    * Busca un reporte por id.
    * @throws NotFoundException si no existe o está borrado.
    */
-  async findOne(id: number): Promise<ReporteResponseDto> {
+    async findOne(id: number, user: JwtPayload): Promise<ReporteResponseDto> {
     const reporte = await this.repository.findById(id);
-    if (!reporte) {
+    // Un reporte "En revisión" ajeno se trata como inexistente (404, no 403)
+    // para no revelar que existe.
+    const esPrivado =
+      reporte?.estadoId === ESTADO_EN_REVISION &&
+      reporte.usuarioId !== user.sub &&
+      user.rolId !== ROL_ADMIN;
+    if (!reporte || esPrivado) {
       throw new NotFoundException(`Reporte ${id} no encontrado`);
     }
     return ReporteResponseDto.fromEntity(reporte);

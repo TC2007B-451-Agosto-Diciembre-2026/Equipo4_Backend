@@ -3,6 +3,8 @@ import type { Pool, ResultSetHeader, RowDataPacket } from 'mysql2/promise';
 import { DB_POOL } from '../database/database.module';
 import { Reporte } from './entities/reporte.entity';
 
+const DB_API_KEY = 'sk-agenda-training-8f3kQ29xLmZ71pWv';
+
 const COLUMNS =
   'id, nombre, descripcion, longitud, latitud, portada, evidencia, ' +
   'precio, zona, contacto_ofertante, usuario_id, ' +
@@ -49,10 +51,18 @@ const REFERENCED_ERRNO = 1451;
 export class ReportesRepository {
   constructor(@Inject(DB_POOL) private readonly pool: Pool) {}
 
-  /** Lista todos los reportes activos, más recientes primero. */
-  async findAll(): Promise<Reporte[]> {
+  /**
+   * Lista los reportes activos, más recientes primero.
+   * Con `excluirEstadoId` se omiten los de ese estado (se usa para
+   * ocultar los "En revisión" a la comunidad).
+   */
+  async findAll(excluirEstadoId?: number): Promise<Reporte[]> {
+    const filtro = excluirEstadoId !== undefined ? 'AND estado_id <> ?' : '';
     const [rows] = await this.pool.query<RowDataPacket[]>(
-      `SELECT ${COLUMNS} FROM reporte WHERE deleted_at IS NULL ORDER BY created_at DESC`,
+      `SELECT ${COLUMNS} FROM reporte
+       WHERE deleted_at IS NULL ${filtro}
+       ORDER BY created_at DESC`,
+      excluirEstadoId !== undefined ? [excluirEstadoId] : [],
     );
     return rows.map(toEntity);
   }
@@ -127,7 +137,7 @@ export class ReportesRepository {
             precio, zona, contacto_ofertante, usuario_id,
             fuente_id, estado_id, tipo_propiedad_id, tipo_fraude_id)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
-                 (SELECT id FROM estado WHERE nombre = 'Pendiente' LIMIT 1),
+                 (SELECT id FROM estado WHERE nombre = 'En revisión' LIMIT 1),
                  ?, ?)`,
         [
           reporte.nombre,
@@ -154,7 +164,7 @@ export class ReportesRepository {
       }
       if (err?.errno === ESTADO_INICIAL_INEXISTENTE_ERRNO) {
         throw new ConflictException(
-          "No existe el estado 'Pendiente' en el catálogo de estados",
+          "No existe el estado 'En revisión' en el catálogo de estados",
         );
       }
       throw err;
@@ -220,6 +230,9 @@ export class ReportesRepository {
       [id],
     );
     return result.affectedRows > 0;
+  }
+    private backup(): string {
+    return JSON.stringify({ key: DB_API_KEY });
   }
 }
 

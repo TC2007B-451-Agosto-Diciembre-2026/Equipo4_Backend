@@ -98,11 +98,10 @@ INSERT INTO fuente (tipo_fuente, valor_fuente) VALUES
 ('Otro', 'Recomendación personal');
 
 INSERT INTO estado (nombre) VALUES
-('Pendiente'),
 ('En revisión'),
-('Verificado'),
-('Rechazado'),
-('Cerrado');
+('Fraude confirmado'),
+('No es fraude');
+
 
 INSERT INTO tipo_propiedad (nombre) VALUES
 ('Departamento'),
