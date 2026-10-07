@@ -1,6 +1,6 @@
-import { Body, Controller, HttpCode, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, Param, Patch, Post, UseGuards } from '@nestjs/common';
 import { AuthGuard } from './auth.guard';
-import { AdminGuard } from './admin.guard';
+import { SuperAdminGuard } from './super-admin.guard';
 import { AuthService } from './users.service';
 import { LoginDto } from './dto/login.dto';
 import { RefreshDto } from './dto/refresh.dto';
@@ -18,15 +18,32 @@ export class AuthController {
   }
 
   @Post('register-admin')
-    @UseGuards(AuthGuard, AdminGuard)
     registerAdmin(@Body() dto: RegisterDto) {
       return this.service.registerAdmin(dto);
-    }
+  }
+
+  @Get('pending-admins')
+  @UseGuards(AuthGuard, SuperAdminGuard)
+  getPendingAdmins() {
+    return this.service.getPendingAdmins();
+  }
+
+  @Patch('admins/:id/approve')
+  @UseGuards(AuthGuard, SuperAdminGuard)
+  approveAdmin(@Param('id') id: string) {
+    return this.service.approveAdmin(id);
+  }
 
   @Post('login')
   @HttpCode(200)
   login(@Body() dto: LoginDto) {
     return this.service.login(dto);
+  }
+
+  @Post('admin-login')
+  @HttpCode(200)
+  adminLogin(@Body() dto: LoginDto) {
+    return this.service.adminLogin(dto);
   }
 
   @Post('refresh')
