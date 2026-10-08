@@ -91,8 +91,21 @@ export class ReportesController {
           callback(null, `${randomUUID()}${extname(file.originalname)}`);
         },
       }),
+      limits: {
+        fileSize: 5 * 1024 *1024,
+      },
+      fileFilter: (_req, file, callback) => {
+        const tiposPermitidos = ['image/jpeg', 'image/png', 'image/webp'];
+
+        if (tiposPermitidos.includes(file.mimetype)) {
+          callback(null, true);
+        } else {
+          callback(new Error('Solo se permiten imágenes JPG, PNG o WEBP'), false);
+        }
+      },
     }),
   )
+   
   uploadFotos(
     @UploadedFiles() files: Express.Multer.File[],
   ): FotoTempResponseDto[] {
