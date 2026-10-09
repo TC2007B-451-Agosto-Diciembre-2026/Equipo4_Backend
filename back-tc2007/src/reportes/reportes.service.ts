@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  Logger,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -28,13 +29,15 @@ const ROL_ADMIN = 2;
  * 3 = No es fraude (verde) — público.
  */
 const ESTADO_EN_REVISION = 1;
-/** Estados en los que el dueño todavía puede editar/eliminar: solo En revisión. */
-const ESTADOS_EDITABLES = [ESTADO_EN_REVISION];
+const ESTADO_FRAUDE_CONFIRMADO = 2;
+/** Estados en los que un admin puede editar un reporte. */
+const ESTADOS_EDITABLES_ADMIN = [ESTADO_EN_REVISION, ESTADO_FRAUDE_CONFIRMADO];
 
 
 
 @Injectable()
 export class ReportesService {
+  private readonly logger = new Logger(ReportesService.name); 
   constructor(private readonly repository: ReportesRepository) {}
 
   /**
@@ -131,8 +134,15 @@ export class ReportesService {
     return ReporteResponseDto.fromEntity(reporte);
   }
 
-  async filter(filters: {estadoId?: number; fuenteId?: number; tipoPropiedadId?: number; tipoFraudeId?: number}) {
-    const reportes = await this.repository.filter(filters);
+   async filter(
+    user: JwtPayload,
+    filters: { q?: string; estadoId?: number; fuenteId?: number; tipoPropiedadId?: number; tipoFraudeId?: number },
+  ): Promise<ReporteResponseDto[]> {
+    const esAdmin = user.rolId === 2 || user.rolId === 3;
+    const reportes = await this.repository.filter({
+      ...filters,
+      estadoId: esAdmin ? filters.estadoId : ESTADO_FRAUDE_CONFIRMADO,
+    });
     return reportes.map((r) => ReporteResponseDto.fromEntity(r));
   }
 
@@ -145,10 +155,16 @@ export class ReportesService {
   async update(
     id: number,
     changes: UpdateReporteDto,
+    user: JwtPayload,
   ): Promise<ReporteResponseDto> {
     const existe = await this.repository.findById(id);
     if (!existe) {
       throw new NotFoundException(`Reporte ${id} no encontrado`);
+    }
+    if (!ESTADOS_EDITABLES_ADMIN.includes(existe.estadoId)) {
+      throw new BadRequestException(
+        'Solo se pueden editar reportes "En revisión" o "Fraude confirmado"',
+      );
     }
     // `fotoTemp` no es una columna real (ver CreateReporteDto): si viene,
     // se traduce a `foto` moviendo el archivo de temporales a definitivo,
@@ -164,7 +180,10 @@ export class ReportesService {
       cambios.portada = this.moverFotoAPermanente(fotoTemps[0]);
       cambios.evidencia = this.moverFotoAPermanente(fotoTemps[1]);
     }
-    const actualizado = await this.repository.update(id, cambios as any);
+     const actualizado = await this.repository.update(id, cambios as any);
+    this.logger.log(
+      `Reporte ${id} editado por ${user.sub}: ${JSON.stringify(cambios)}`,
+    );
     return ReporteResponseDto.fromEntity(actualizado!);
   }
 

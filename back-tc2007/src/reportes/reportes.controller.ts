@@ -154,6 +154,33 @@ export class ReportesController {
   }
 
   /**
+   * Búsqueda de reportes. Un usuario normal solo recibe reportes con
+   * "Fraude confirmado" (se ignora el estadoId que mande); un admin
+   * puede filtrar por cualquier estado. `q` busca por palabra clave en
+   * nombre, descripción y contacto del ofertante (URL, teléfono, etc.).
+   * Debe declararse antes de `GET /reportes/:id`.
+   */
+  @ApiOperation({ summary: 'Buscar/filtrar reportes' })
+  @ApiOkResponse({ type: ReporteResponseDto, isArray: true })
+  @Get('filter')
+  filter(
+    @CurrentUser() user: JwtPayload,
+    @Query('q') q?: string,
+    @Query('estadoId') estadoId?: string,
+    @Query('fuenteId') fuenteId?: string,
+    @Query('tipoPropiedadId') tipoPropiedadId?: string,
+    @Query('tipoFraudeId') tipoFraudeId?: string,
+  ): Promise<ReporteResponseDto[]> {
+    return this.service.filter(user, {
+      q: q?.trim() || undefined,
+      estadoId: estadoId ? Number(estadoId) : undefined,
+      fuenteId: fuenteId ? Number(fuenteId) : undefined,
+      tipoPropiedadId: tipoPropiedadId ? Number(tipoPropiedadId) : undefined,
+      tipoFraudeId: tipoFraudeId ? Number(tipoFraudeId) : undefined,
+    });
+  }
+  
+  /**
  * Datos del autor de un reporte. Solo admin / super admin.
  * Devuelve UsuarioResponseDto, que ya excluye contrasena y salt.
  */
@@ -182,22 +209,6 @@ async findAutor(
     return this.service.findOne(id, user);
   }
 
-  @Get('filter')
-  filter(
-    @Query('estadoId') estadoId?: string,
-    @Query('fuenteId') fuenteId?: string,
-    @Query('tipoPropiedadId') tipoPropiedadId?: string,
-    @Query('tipoFraudeId') tipoFraudeId?: string,
-  ): Promise<ReporteResponseDto[]> {
-    return this.service.filter({
-      estadoId: estadoId ? Number(estadoId) : undefined,
-      fuenteId: fuenteId ? Number(fuenteId) : undefined,
-      tipoPropiedadId: tipoPropiedadId
-        ? Number(tipoPropiedadId)
-        : undefined,
-      tipoFraudeId: tipoFraudeId ? Number(tipoFraudeId) : undefined,
-    });
-  }
 
   /**
    * Actualiza parcialmente un reporte. Incluir `estadoId` en el body
@@ -210,10 +221,11 @@ async findAutor(
   @Patch(':id')
   @UseGuards(AdminGuard)
   update(
+    @CurrentUser() user: JwtPayload,
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: UpdateReporteDto,
   ): Promise<ReporteResponseDto> {
-    return this.service.update(id, dto);
+    return this.service.update(id, dto, user);
   }
 
   /** Borra lógicamente un reporte (`deleted_at = NOW()`). */
