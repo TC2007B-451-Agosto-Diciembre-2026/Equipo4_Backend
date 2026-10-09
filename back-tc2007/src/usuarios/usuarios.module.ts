@@ -4,6 +4,7 @@ import { DatabaseModule } from '../database/database.module';
 import { UsuariosController } from './usuarios.controller';
 import { UsuariosRepository } from './usuarios.repository';
 import { UsuariosService } from './usuarios.service';
+export { UsuariosService } from './usuarios.service';
 
 @Module({
   imports: [DatabaseModule, AuthModule],

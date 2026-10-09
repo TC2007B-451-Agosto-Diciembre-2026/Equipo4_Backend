@@ -37,6 +37,8 @@ import { CreateReporteDto } from './dto/create-reporte.dto';
 import { UpdateReporteDto } from './dto/update-reporte.dto';
 import { FOTOS_TMP_DIR } from './uploads.paths';
 import { AdminGuard } from 'src/usuarios/auth/admin.guard';
+import { UsuariosService } from '../usuarios/usuarios.service';
+import { UsuarioResponseDto } from '../usuarios/dto/usuario-response.dto';
 
 /**
  * CRUD de reportes de fraude (`/reportes`). Requiere Bearer token.
@@ -50,7 +52,7 @@ import { AdminGuard } from 'src/usuarios/auth/admin.guard';
 @Controller('reportes')
 @UseGuards(AuthGuard)
 export class ReportesController {
-  constructor(private readonly service: ReportesService) {}
+  constructor(private readonly service: ReportesService, private readonly usuariosService: UsuariosService) {}
 
   /**
    * Sube una foto de evidencia a una carpeta temporal, ANTES de crear
@@ -177,7 +179,23 @@ export class ReportesController {
       tipoFraudeId: tipoFraudeId ? Number(tipoFraudeId) : undefined,
     });
   }
-
+  
+  /**
+ * Datos del autor de un reporte. Solo admin / super admin.
+ * Devuelve UsuarioResponseDto, que ya excluye contrasena y salt.
+ */
+@ApiOperation({ summary: 'Obtener datos del autor de un reporte (solo admin)' })
+@ApiParam({ name: 'id', type: Number })
+@ApiOkResponse({ type: UsuarioResponseDto })
+@Get(':id/autor')
+@UseGuards(AdminGuard)
+async findAutor(
+  @CurrentUser() user: JwtPayload,
+  @Param('id', ParseIntPipe) id: number,
+): Promise<UsuarioResponseDto> {
+  const reporte = await this.service.findOne(id, user);
+  return this.usuariosService.findOne(reporte.usuarioId);
+}
 
   /** Obtiene un reporte por id. 404 si no existe o está borrado. */
   @ApiOperation({ summary: 'Obtener un reporte por id' })
