@@ -67,12 +67,18 @@ export class ReportesRepository {
     return rows.map(toEntity);
   }
 
-  async filter(filters: {estadoId?: number; fuenteId?: number; tipoPropiedadId?: number; tipoFraudeId?: number}): Promise<Reporte[]> {
+   async filter(filters: {q?: string; estadoId?: number; fuenteId?: number; tipoPropiedadId?: number; tipoFraudeId?: number}): Promise<Reporte[]> {
     let query = `SELECT ${COLUMNS}
       FROM reporte
       WHERE deleted_at IS NULL`;
 
-    const valores: number[] = [];
+    const valores: (number | string)[] = [];
+
+    if (filters.q) {
+      query += ' AND (nombre LIKE ? OR descripcion LIKE ? OR contacto_ofertante LIKE ?)';
+      const like = `%${filters.q}%`;
+      valores.push(like, like, like);
+    }
 
     if (filters.estadoId !== undefined) {
       query += ' AND estado_id = ?';
