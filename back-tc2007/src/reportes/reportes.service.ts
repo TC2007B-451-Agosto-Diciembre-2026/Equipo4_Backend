@@ -124,7 +124,7 @@ export class ReportesService {
     const esPrivado =
       reporte?.estadoId === ESTADO_EN_REVISION &&
       reporte.usuarioId !== user.sub &&
-      user.rolId !== ROL_ADMIN;
+      user.rolId !== 2 && user.rolId !== 3;
     if (!reporte || esPrivado) {
       throw new NotFoundException(`Reporte ${id} no encontrado`);
     }
