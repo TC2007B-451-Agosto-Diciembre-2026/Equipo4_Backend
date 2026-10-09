@@ -21,7 +21,7 @@ import { JwtPayload } from 'src/usuarios/auth/jwt';
  * tipo de propiedad, tipo de fraude) las hace {@link ReportesRepository}.
  */
 /** `rol.id` del Administrador. */
-const ROL_ADMIN = 2;
+const ROLES_ADMIN = [2, 3];
 /**
  * Estados (tabla `estado`, semáforo):
  * 1 = En revisión (amarillo) — estado inicial, solo lo ven su autor y el admin.
@@ -104,7 +104,7 @@ export class ReportesService {
    */
   async findAll(user: JwtPayload): Promise<ReporteResponseDto[]> {
     const reportes = await this.repository.findAll(
-      user.rolId === ROL_ADMIN ? undefined : ESTADO_EN_REVISION,
+      ROLES_ADMIN.includes(user.rolId) ? undefined : ESTADO_EN_REVISION,
     );
     return reportes.map((r) => ReporteResponseDto.fromEntity(r));
   }
@@ -127,7 +127,7 @@ export class ReportesService {
     const esPrivado =
       reporte?.estadoId === ESTADO_EN_REVISION &&
       reporte.usuarioId !== user.sub &&
-      user.rolId !== 2 && user.rolId !== 3;
+       !ROLES_ADMIN.includes(user.rolId);
     if (!reporte || esPrivado) {
       throw new NotFoundException(`Reporte ${id} no encontrado`);
     }
@@ -138,7 +138,7 @@ export class ReportesService {
     user: JwtPayload,
     filters: { q?: string; estadoId?: number; fuenteId?: number; tipoPropiedadId?: number; tipoFraudeId?: number },
   ): Promise<ReporteResponseDto[]> {
-    const esAdmin = user.rolId === 2 || user.rolId === 3;
+    const esAdmin = ROLES_ADMIN.includes(user.rolId);
     const reportes = await this.repository.filter({
       ...filters,
       estadoId: esAdmin ? filters.estadoId : ESTADO_FRAUDE_CONFIRMADO,
