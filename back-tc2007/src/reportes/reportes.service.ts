@@ -131,6 +131,10 @@ export class ReportesService {
     return ReporteResponseDto.fromEntity(reporte);
   }
 
+  async filter(filters: {estadoId?: number; fuenteId?: number; tipoPropiedadId?: number; tipoFraudeId?: number}) {
+    const reportes = await this.repository.filter(filters);
+    return reportes.map((r) => ReporteResponseDto.fromEntity(r));
+  }
 
   /**
    * Actualiza campos parciales de un reporte, incluyendo `estadoId`

@@ -67,6 +67,38 @@ export class ReportesRepository {
     return rows.map(toEntity);
   }
 
+  async filter(filters: {estadoId?: number; fuenteId?: number; tipoPropiedadId?: number; tipoFraudeId?: number}): Promise<Reporte[]> {
+    let query = `SELECT ${COLUMNS}
+      FROM reporte
+      WHERE deleted_at IS NULL`;
+
+    const valores: number[] = [];
+
+    if (filters.estadoId !== undefined) {
+      query += ' AND estado_id = ?';
+      valores.push(filters.estadoId);
+    }
+
+    if (filters.fuenteId !== undefined) {
+      query += ' AND fuente_id = ?';
+      valores.push(filters.fuenteId);
+    }
+
+    if (filters.tipoPropiedadId !== undefined) {
+      query += ' AND tipo_propiedad_id = ?';
+      valores.push(filters.tipoPropiedadId);
+    }
+
+    if (filters.tipoFraudeId !== undefined) {
+      query += ' AND tipo_fraude_id = ?';
+      valores.push(filters.tipoFraudeId);
+    }
+
+    query += ' ORDER BY created_at DESC';
+
+    const [rows] = await this.pool.query<RowDataPacket[]>(query, valores);
+    return rows.map(toEntity);
+  }
 
   /** Lista los reportes activos de un usuario específico (UUID), más recientes primero. */
   async findByUsuario(usuarioId: string): Promise<Reporte[]> {

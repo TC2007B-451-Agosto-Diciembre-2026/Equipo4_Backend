@@ -1,5 +1,4 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { randomUUID } from 'node:crypto';
 import type { Pool, RowDataPacket, ResultSetHeader } from 'mysql2/promise';
 import { DB_POOL } from 'src/database/database.module';
 import { User } from './entities/user.entity';
@@ -35,13 +34,8 @@ export class UsersRepository {
    * (UUID v4) se genera aquí mismo con `crypto.randomUUID()`, igual
    * que en {@link UsuariosRepository.save} (usuarios/usuarios.repository.ts).
    */
-  async save(
-    correo: string,
-    contrasena: string,
-    salt: string,
-    nombre: string,
-  ): Promise<User> {
-    const id = randomUUID();
+  async save(correo: string, contrasena: string, salt: string, nombre: string): Promise<User> {
+    const id = Math.random().toString(36).substring(2, 10);
     await this.pool.query<ResultSetHeader>(
       `INSERT INTO usuario
                 (id, correo, contrasena, salt, nombre, rol_id)
@@ -52,15 +46,37 @@ export class UsersRepository {
   }
 
   async saveAdmin(correo: string, contrasena: string, salt: string, nombre: string): Promise<User> {
-    const id = randomUUID();
+    const id = Math.random().toString(36).substring(2, 10);
     await this.pool.query(
       `INSERT INTO usuario
         (id, correo, contrasena, salt, nombre, rol_id)
-      VALUES (?, ?, ?, ?, ?, 2)`,
+      VALUES (?, ?, ?, ?, ?, 4)`,
       [id, correo, contrasena, salt, nombre],
     );
 
     return (await this.findById(id))!;
+  }
+
+  async findPendingAdmins() {
+    const [rows] = await this.pool.query<RowDataPacket[]>(
+      `SELECT id, correo, nombre, created_at
+      FROM usuario
+      WHERE rol_id = 4
+      AND deleted_at IS NULL`
+    );
+    return rows;
+  }
+
+  async approveAdmin(id: string): Promise<boolean> {
+    const [result] = await this.pool.query<ResultSetHeader>(
+      `UPDATE usuario
+      SET rol_id = 2
+      WHERE id = ?
+      AND rol_id = 4
+      AND deleted_at IS NULL`,
+      [id]
+    );
+    return result.affectedRows > 0;
   }
 
   /** Busca un usuario activo por id (UUID). Usado al refrescar el token. */
@@ -73,7 +89,7 @@ export class UsersRepository {
   }
 
     async createRecoveryCode(usuarioId: string, codigo: string, expiraEn: Date): Promise<void> {
-    const id = randomUUID();
+    const id = Math.random().toString(36).substring(2, 10);
     await this.pool.query<ResultSetHeader>(
       `INSERT INTO recovery_code
         (id, usuario_id, codigo, expira_en, usado)

@@ -7,6 +7,7 @@ import {
   Param,
   ParseIntPipe,
   Patch,
+  Query,
   Post,
   UseGuards,
   UseInterceptors,
@@ -92,8 +93,21 @@ export class ReportesController {
           callback(null, `${randomUUID()}${extname(file.originalname)}`);
         },
       }),
+      limits: {
+        fileSize: 5 * 1024 *1024,
+      },
+      fileFilter: (_req, file, callback) => {
+        const tiposPermitidos = ['image/jpeg', 'image/png', 'image/webp'];
+
+        if (tiposPermitidos.includes(file.mimetype)) {
+          callback(null, true);
+        } else {
+          callback(new Error('Solo se permiten imágenes JPG, PNG o WEBP'), false);
+        }
+      },
     }),
   )
+   
   uploadFotos(
     @UploadedFiles() files: Express.Multer.File[],
   ): FotoTempResponseDto[] {
@@ -166,6 +180,23 @@ async findAutor(
     @Param('id', ParseIntPipe) id: number,
   ): Promise<ReporteResponseDto> {
     return this.service.findOne(id, user);
+  }
+
+  @Get('filter')
+  filter(
+    @Query('estadoId') estadoId?: string,
+    @Query('fuenteId') fuenteId?: string,
+    @Query('tipoPropiedadId') tipoPropiedadId?: string,
+    @Query('tipoFraudeId') tipoFraudeId?: string,
+  ): Promise<ReporteResponseDto[]> {
+    return this.service.filter({
+      estadoId: estadoId ? Number(estadoId) : undefined,
+      fuenteId: fuenteId ? Number(fuenteId) : undefined,
+      tipoPropiedadId: tipoPropiedadId
+        ? Number(tipoPropiedadId)
+        : undefined,
+      tipoFraudeId: tipoFraudeId ? Number(tipoFraudeId) : undefined,
+    });
   }
 
   /**

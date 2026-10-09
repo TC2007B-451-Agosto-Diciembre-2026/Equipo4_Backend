@@ -1,6 +1,7 @@
 import {
   ConflictException,
   Injectable,
+  NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
 import { generateSalt, hashPassword, verifyPassword } from '../../common/password.util';
@@ -70,6 +71,14 @@ export class AuthService {
       throw new UnauthorizedException('Password incorrecto');
     }
 
+    if (!user) {
+      throw new UnauthorizedException('El usuario no existe');
+    }
+
+    if (user.rolId === 4) {
+      throw new UnauthorizedException('Tu solicitud de administrador está pendiente de aprobación');
+    }
+
     const claims = { sub: user.id!, email: user.email!, rolId: user.rolId!};
 
     const accessToken = sign(
@@ -85,6 +94,56 @@ export class AuthService {
     console.log('Login de ' + user.email + ': ' + accessToken);
 
     return { accessToken, refreshToken };
+  }
+
+  
+  async adminLogin(dto: LoginDto): Promise<{
+    accessToken: string;
+    refreshToken: string;
+  }> {
+    const user = await this.users.findByEmail(dto.email!);
+
+    if (!user) {
+      throw new UnauthorizedException('Credenciales incorrectas');
+    }
+
+    if (!verifyPassword(dto.password!, user.salt!,user.passwordHash!)) {
+      throw new UnauthorizedException('Credenciales incorrectas');
+    }
+
+    if (user.rolId !== 2 && user.rolId !== 3) {
+      throw new UnauthorizedException('No tienes permisos para acceder al dashboard');
+    }
+
+    const claims = {sub: user.id!, email: user.email!, rolId: user.rolId!};
+
+    const accessToken = sign(
+      { ...claims, type: 'access' },
+      ACCESS_TTL,
+    );
+
+    const refreshToken = sign(
+      { ...claims, type: 'refresh' },
+      REFRESH_TTL,
+    );
+
+    return { accessToken, refreshToken };
+  }
+
+  async getPendingAdmins() {
+    return this.users.findPendingAdmins();
+  }
+
+  async approveAdmin(id: string) {
+    const approved = await this.users.approveAdmin(id);
+
+    if (!approved) {
+      throw new NotFoundException('No se encontró una solicitud pendiente');
+    }
+
+    return {
+      message: 'Administrador aprobado correctamente'
+    };
   }
 
   refresh(dto: RefreshDto): { accessToken: string } {
