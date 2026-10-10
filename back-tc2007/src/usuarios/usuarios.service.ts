@@ -3,10 +3,9 @@ import { UsuariosRepository } from './usuarios.repository';
 import { UsuarioResponseDto } from './dto/usuario-response.dto';
 import { CreateUsuarioDto } from './dto/create-usuario.dto';
 import { UpdateUsuarioDto } from './dto/update-usuario.dto';
-//import { generateSalt, hashPassword } from '../common/password.util';
+import { generateSalt, hashPassword } from '../common/password.util';
 import { UpdateMyProfileDto } from './dto/update-profile.dto';
-import { generateSalt } from '../common/password.util';
-import { hash } from './auth/users.service';
+
 @Injectable()
 export class UsuariosService {
   constructor(private readonly repository: UsuariosRepository) {}
@@ -15,8 +14,7 @@ export class UsuariosService {
     const salt = generateSalt();
     const usuario = await this.repository.save({
       correo: data.correo,
-      //contrasena: hashPassword(data.contrasena, salt),
-      contrasena: hash(data.contrasena + salt),
+      contrasena: hashPassword(data.contrasena, salt),
       salt: salt,
       nombre: data.nombre,
       rolId: data.rolId,

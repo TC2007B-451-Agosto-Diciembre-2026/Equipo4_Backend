@@ -26,7 +26,8 @@ export class UsuariosRepository {
   /** Busca un usuario activo por id (UUID). `undefined` si no existe o está borrado. */
     async findById(id: string): Promise<Usuario | undefined> {
     const [rows] = await this.pool.query<RowDataPacket[]>(
-      `SELECT ${COLUMNS} FROM usuario WHERE id = '${id}' AND deleted_at IS NULL`,
+       `SELECT ${COLUMNS} FROM usuario WHERE id = ? AND deleted_at IS NULL`,
+       [id],
     );
     return rows[0] && toEntity(rows[0]);
   }
@@ -45,8 +46,9 @@ export class UsuariosRepository {
     const id = randomUUID();
     try {
       await this.pool.query<ResultSetHeader>(
-        `INSERT INTO usuario (id, correo, contrasena, salt, nombre, rol_id)
-         VALUES ('${id}', '${usuario.correo}', '${usuario.contrasena}', '${usuario.salt}', '${usuario.nombre}', ${usuario.rolId})`,
+       `INSERT INTO usuario (id, correo, contrasena, salt, nombre, rol_id)
+        VALUES (?, ?, ?, ?, ?, ?)`,
+        [id, usuario.correo, usuario.contrasena, usuario.salt, usuario.nombre, usuario.rolId],
       );
       return (await this.findById(id))!;
     } catch (err: any) {
@@ -68,28 +70,35 @@ export class UsuariosRepository {
     changes: Partial<Usuario>,
   ): Promise<Usuario | undefined> {
     const asignaciones: string[] = [];
+    const valores: unknown[] = [];
 
     if (changes.correo !== undefined) {
-      asignaciones.push(`correo = '${changes.correo}'`);
+      asignaciones.push('correo = ?');
+      valores.push(changes.correo);
     }
     if (changes.contrasena !== undefined) {
-      asignaciones.push(`contrasena = '${changes.contrasena}'`);
+      asignaciones.push('contrasena = ?');
+      valores.push(changes.contrasena);
     }
     if (changes.salt !== undefined) {
-      asignaciones.push(`salt = '${changes.salt}'`);
+      asignaciones.push('salt = ?');
+      valores.push(changes.salt);
     }
     if (changes.nombre !== undefined) {
-      asignaciones.push(`nombre = '${changes.nombre}'`);
+      asignaciones.push('nombre = ?');
+      valores.push(changes.nombre);
     }
     if (changes.rolId !== undefined) {
-      asignaciones.push(`rol_id = ${changes.rolId}`);
+      asignaciones.push('rol_id = ?');
+      valores.push(changes.rolId);
     }
 
     if (asignaciones.length === 0) return this.findById(id);
 
     try {
       await this.pool.query(
-        `UPDATE usuario SET ${asignaciones.join(', ')} WHERE id = '${id}' AND deleted_at IS NULL`,
+        `UPDATE usuario SET ${asignaciones.join(', ')} WHERE id = ? AND deleted_at IS NULL`,
+        [...valores, id],
       );
     } catch (err: any) {
       if (err?.errno === 1452) {
@@ -107,8 +116,9 @@ export class UsuariosRepository {
    */
   async softDelete(id: string): Promise<boolean> {
     const [result] = await this.pool.query<ResultSetHeader>(
-      `UPDATE usuario SET deleted_at = NOW() WHERE id = '${id}' AND deleted_at IS NULL`,
-    );
+        `UPDATE usuario SET deleted_at = NOW() WHERE id = ? AND deleted_at IS NULL`,
+        [id],
+      );
     return result.affectedRows > 0;
   }
 }
