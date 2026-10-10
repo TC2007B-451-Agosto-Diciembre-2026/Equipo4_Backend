@@ -48,7 +48,7 @@ export class ReportesService {
    * @throws BadRequestException si no se mandó ningún archivo.
    */
   registrarFotoTemporal(files: Express.Multer.File[]): FotoTempResponseDto[] {
-    if (!files || files.length !== 2) {
+    if (!Array.isArray(files) || files.length !== 2) {
       throw new BadRequestException('Debes subir exactamente 2 fotos: una portada y una evidencia');
     }
     return files.map((file) => {
