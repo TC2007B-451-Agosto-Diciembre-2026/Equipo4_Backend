@@ -4,15 +4,23 @@ import {
   NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
-import { generateSalt, hashPassword, verifyPassword } from '../../common/password.util';
+//import { generateSalt, hashPassword, verifyPassword } from '../../common/password.util';
+import { createHash, randomInt } from 'node:crypto';
 import { LoginDto } from './dto/login.dto';
 import { RefreshDto } from './dto/refresh.dto';
 import { RegisterDto } from './dto/register.dto';
 import { sign, verify } from './jwt';
 import { UsersRepository } from './users.repository';
-import { randomInt } from 'node:crypto';
 import * as nodemailer from 'nodemailer';
 import { ResetPasswordDto } from './dto/reset-password.dto';
+import { generateSalt } from '../../common/password.util';
+
+/**
+ * Para generar un salt aleatorio de 16 bytes y codificarlo en base64.
+ */
+export function hash(password: string): string {
+  return createHash('sha256').update(password).digest('hex');
+}
 
 /** Vida del access token: 15 minutos (en segundos). */
 const ACCESS_TTL = 15 * 60;
@@ -65,7 +73,8 @@ export class AuthService {
     const salt = generateSalt();
     const user = await this.users.save(
             dto.email!,
-            hashPassword(dto.password!, salt),
+            //hashPassword(dto.password!, salt),
+            hash(dto.password! + salt),
             salt,
             dto.nombre!,
         );
@@ -88,7 +97,8 @@ export class AuthService {
     const salt = generateSalt();
     const user = await this.users.saveAdmin(
       dto.email!,
-      hashPassword(dto.password!, salt),
+      //hashPassword(dto.password!, salt),
+      hash(dto.password! + salt),
       salt,
       dto.nombre!,
     );
@@ -117,7 +127,8 @@ export class AuthService {
       throw new UnauthorizedException('El usuario no existe');
     }
 
-    if (!verifyPassword(dto.password!, user.salt!, user.passwordHash!)) {
+    //if (!verifyPassword(dto.password!, user.salt!, user.passwordHash!)) {
+    if (hash(dto.password! + user.salt!) !== user.passwordHash!) {
       throw new UnauthorizedException('Password incorrecto');
     }
 
@@ -167,7 +178,8 @@ export class AuthService {
       throw new UnauthorizedException('Credenciales incorrectas');
     }
 
-    if (!verifyPassword(dto.password!, user.salt!,user.passwordHash!)) {
+    //if (!verifyPassword(dto.password!, user.salt!,user.passwordHash!)) {
+    if (hash(dto.password! + user.salt!) !== user.passwordHash!) {
       throw new UnauthorizedException('Credenciales incorrectas');
     }
 
@@ -311,7 +323,8 @@ export class AuthService {
       throw new UnauthorizedException('Código expirado');
     }
     const salt = generateSalt();
-    const passwordHash = hashPassword(dto.nuevaContrasena, salt);
+    //const passwordHash = hashPassword(dto.nuevaContrasena, salt);
+    const passwordHash = hash(dto.nuevaContrasena + salt);
     await this.users.updatePassword(
       user.id!,
       passwordHash,
